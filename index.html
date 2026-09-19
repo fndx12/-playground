@@ -141,14 +141,46 @@
       outline-offset: 2px;
     }
 
+    .game-section + .game-section {
+      margin-top: 38px;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin: 0 0 16px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-size: 25px;
+      letter-spacing: 0;
+    }
+
+    .section-heading span {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
     .games {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
       gap: 18px;
     }
 
+    .featured-games {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .other-games {
+      grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
+      gap: 14px;
+    }
+
     .game-card {
-      min-height: 210px;
+      min-width: 0;
+      min-height: 196px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -181,27 +213,44 @@
       box-shadow: 0 8px 18px rgba(23, 32, 51, 0.08);
     }
 
-    .game-number {
-      color: rgba(23, 32, 51, 0.24);
-      font-size: 42px;
-      font-weight: 900;
-      line-height: 1;
+    .frequent-badge {
+      align-self: flex-start;
+      padding: 5px 9px;
+      border: 1px solid rgba(23, 32, 51, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }
 
     .game-body {
-      display: grid;
-      gap: 18px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       padding: 18px;
     }
 
     .game-name {
       margin: 0;
-      min-height: 52px;
-      display: flex;
-      align-items: center;
-      font-size: 21px;
+      font-size: 19px;
       line-height: 1.25;
       letter-spacing: 0;
+    }
+
+    .family-records {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.4;
+    }
+
+    .family-record {
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     .start-button {
@@ -216,6 +265,7 @@
       font-size: 16px;
       font-weight: 800;
       transition: transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+      margin-top: auto;
     }
 
     .start-button:hover {
@@ -229,6 +279,53 @@
       box-shadow: none;
     }
 
+    .featured-card {
+      min-height: 286px;
+      border-color: rgba(47, 128, 237, 0.2);
+      box-shadow: 0 20px 44px rgba(23, 32, 51, 0.15);
+    }
+
+    .featured-card .game-art {
+      min-height: 124px;
+      padding: 24px;
+    }
+
+    .featured-card .game-icon {
+      width: 76px;
+      height: 76px;
+      font-size: 44px;
+    }
+
+    .featured-card .game-body {
+      gap: 14px;
+      padding: 22px;
+    }
+
+    .featured-card .game-name {
+      font-size: 24px;
+    }
+
+    .featured-card .start-button {
+      min-height: 52px;
+      background: #22304a;
+      font-size: 17px;
+    }
+
+    .compact-card .game-art {
+      min-height: 78px;
+      padding: 15px;
+    }
+
+    .compact-card .game-icon {
+      width: 52px;
+      height: 52px;
+      font-size: 30px;
+    }
+
+    .compact-card .game-body {
+      padding: 15px;
+    }
+
     .empty {
       padding: 28px;
       border: 1px dashed var(--line);
@@ -236,6 +333,12 @@
       background: rgba(255, 255, 255, 0.72);
       color: var(--muted);
       text-align: center;
+    }
+
+    @media (max-width: 920px) {
+      .featured-games {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     @media (max-width: 680px) {
@@ -275,8 +378,18 @@
         gap: 14px;
       }
 
-      .game-card {
-        min-height: 190px;
+      .featured-card {
+        min-height: 250px;
+      }
+
+      .game-section + .game-section {
+        margin-top: 30px;
+      }
+
+      .section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
       }
     }
   </style>
@@ -305,66 +418,111 @@
       </div>
     </section>
 
-    <section id="games" class="games" aria-label="游戏列表"></section>
+    <section class="game-section" aria-labelledby="featured-title">
+      <div class="section-heading">
+        <h2 id="featured-title">常玩游戏</h2>
+        <span>最近最常打开的游戏</span>
+      </div>
+      <div id="featuredGames" class="games featured-games"></div>
+    </section>
+
+    <section class="game-section" aria-labelledby="other-title">
+      <div class="section-heading">
+        <h2 id="other-title">其他游戏</h2>
+        <span>更多家庭小游戏</span>
+      </div>
+      <div id="otherGames" class="games other-games"></div>
+    </section>
   </main>
 
   <script>
     const games = [
       {
-        name: "米宝的小兔子吃胡萝卜",
-        file: "mibao_bunny_carrot_game.html",
-        icon: "🥕",
-        color: "rgba(255, 214, 107, 0.5)"
-      },
-      {
-        name: "大家来抢钱",
-        file: "大家来抢钱.html",
-        icon: "💰",
-        color: "rgba(47, 128, 237, 0.18)"
-      },
-      {
-        name: "红帽小子大冒险",
-        file: "red-hat-boy-game.html",
-        icon: "🧢",
-        color: "rgba(232, 85, 85, 0.18)"
-      },
-      {
-        name: "红帽小子大冒险：飞鸟关卡",
+        id: "red-hat-bird",
+        name: "红帽小子大冒险：飞鸟关",
         file: "red-hat-boy-game-bird-level.html",
         icon: "🪽",
-        color: "rgba(47, 182, 109, 0.2)"
+        color: "rgba(47, 182, 109, 0.2)",
+        featured: true,
+        records: [{ game: "red_hat_bird_4_levels", direction: "asc", type: "time" }]
       },
       {
-        name: "米宝的地洞惊喜游戏",
-        file: "mibao_mole_bomb_diamond_game.html",
-        icon: "💎",
-        color: "rgba(142, 99, 255, 0.16)"
-      },
-      {
-        name: "米宝口算大挑战",
-        file: "米宝口算大挑战-单文件版.html",
-        icon: "🧮",
-        color: "rgba(245, 166, 35, 0.2)"
-      },
-      {
-        name: "猫武士：猫族营地物语",
-        file: "猫武士.html",
-        icon: "🐾",
-        color: "rgba(38, 166, 154, 0.18)"
-      },
-      {
+        id: "dino-runner",
         name: "恐龙跑酷游戏",
         file: "恐龙跑酷游戏.html",
         icon: "🦖",
-        color: "rgba(126, 181, 67, 0.2)"
+        color: "rgba(126, 181, 67, 0.2)",
+        featured: true,
+        records: [{ game: "dino_runner", direction: "desc", type: "score" }]
+      },
+      {
+        id: "warrior-cats",
+        name: "猫武士：猫族营地物语",
+        file: "猫武士.html",
+        icon: "🐾",
+        color: "rgba(38, 166, 154, 0.18)",
+        featured: true,
+        records: []
+      },
+      {
+        id: "bunny-carrot",
+        name: "米宝的小兔子吃胡萝卜",
+        file: "mibao_bunny_carrot_game.html",
+        icon: "🥕",
+        color: "rgba(255, 214, 107, 0.5)",
+        featured: false,
+        records: [{ game: "bunny_carrot_1min", direction: "desc", type: "score" }]
+      },
+      {
+        id: "money-race",
+        name: "大家来抢钱",
+        file: "大家来抢钱.html",
+        icon: "💰",
+        color: "rgba(47, 128, 237, 0.18)",
+        featured: false,
+        records: []
+      },
+      {
+        id: "red-hat-classic",
+        name: "红帽小子大冒险（普通3关版）",
+        file: "red-hat-boy-game.html",
+        icon: "🧢",
+        color: "rgba(232, 85, 85, 0.18)",
+        featured: false,
+        records: [{ game: "red_hat_3_levels", direction: "asc", type: "time" }]
+      },
+      {
+        id: "mole-surprise",
+        name: "米宝的地洞惊喜游戏",
+        file: "mibao_mole_bomb_diamond_game.html",
+        icon: "💎",
+        color: "rgba(142, 99, 255, 0.16)",
+        featured: false,
+        records: [{ game: "mole_surprise_1min", direction: "desc", type: "score" }]
+      },
+      {
+        id: "math-challenge",
+        name: "米宝口算大挑战",
+        file: "米宝口算大挑战-单文件版.html",
+        icon: "🧮",
+        color: "rgba(245, 166, 35, 0.2)",
+        featured: false,
+        records: [
+          { game: "math_challenge_1min", direction: "desc", type: "score", label: "1分钟" },
+          { game: "math_challenge_2min", direction: "desc", type: "score", label: "2分钟" }
+        ]
       }
     ];
 
-    const gamesEl = document.getElementById("games");
+    const featuredGamesEl = document.getElementById("featuredGames");
+    const otherGamesEl = document.getElementById("otherGames");
     const gameCountEl = document.getElementById("gameCount");
     const familyPlayerSelect = document.getElementById("familyPlayerSelect");
     const PLAYER_STORAGE_KEY = "familyPlayer";
     const FAMILY_PLAYERS = ["爸爸", "婠婠", "米宝"];
+    const SUPABASE_URL = "https://euvhugrohdejsjdehkze.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_IoILNvOG-OvT6HhWILSpGw_0TJh81ue";
+    const SCORE_API = `${SUPABASE_URL}/rest/v1/scores`;
 
     function loadFamilyPlayer() {
       try {
@@ -388,25 +546,96 @@
       }
     });
 
-    gameCountEl.textContent = games.length;
+    function renderGameCard(game) {
+      const recordMarkup = game.records.length
+        ? `<div class="family-records" aria-live="polite">${game.records.map((record, index) =>
+            `<div id="record-${game.id}-${index}" class="family-record">🏆 ${record.label ? `${record.label}：` : ""}家庭纪录加载中...</div>`
+          ).join("")}</div>`
+        : "";
 
-    if (games.length === 0) {
-      gamesEl.className = "empty";
-      gamesEl.textContent = "当前目录还没有识别到 HTML 游戏。";
-    } else {
-      gamesEl.innerHTML = games.map((game, index) => `
-        <article class="game-card" style="--accent-soft: ${game.color}">
+      return `
+        <article class="game-card ${game.featured ? "featured-card" : "compact-card"}" style="--accent-soft: ${game.color}">
           <div class="game-art" aria-hidden="true">
             <div class="game-icon">${game.icon}</div>
-            <div class="game-number">${String(index + 1).padStart(2, "0")}</div>
+            ${game.featured ? '<span class="frequent-badge">常玩</span>' : ""}
           </div>
           <div class="game-body">
-            <h2 class="game-name">${game.name}</h2>
+            <h3 class="game-name">${game.name}</h3>
+            ${recordMarkup}
             <a class="start-button" href="${encodeURI(game.file)}">开始游戏</a>
           </div>
-        </article>
-      `).join("");
+        </article>`;
     }
+
+    function formatRunTime(score) {
+      const total = Math.max(0, Number(score) || 0);
+      const minutes = Math.floor(total / 6000);
+      const seconds = Math.floor((total % 6000) / 100);
+      const fraction = String(Math.floor(total % 100)).padStart(2, "0");
+      return `${minutes}分${String(seconds).padStart(2, "0")}.${fraction}秒`;
+    }
+
+    function formatRecord(record, rule) {
+      if (!record) return "暂无家庭纪录";
+      if (rule.type === "time") {
+        const readableTime = typeof record.result === "string" && record.result.includes("通关")
+          ? record.result.replace(/^.*?通关\s*/, "")
+          : formatRunTime(record.score);
+        return `${record.player || "未知玩家"} · ${readableTime}`;
+      }
+      return `${record.player || "未知玩家"} · ${Number(record.score) || 0}分`;
+    }
+
+    function findBestRecord(records, rule) {
+      return records.reduce((best, current) => {
+        if (!best) return current;
+        const currentScore = Number(current.score);
+        const bestScore = Number(best.score);
+        if (!Number.isFinite(currentScore)) return best;
+        if (!Number.isFinite(bestScore)) return current;
+        return rule.direction === "asc"
+          ? (currentScore < bestScore ? current : best)
+          : (currentScore > bestScore ? current : best);
+      }, null);
+    }
+
+    async function loadFamilyRecords() {
+      const recordGames = games.flatMap((game) => game.records.map((record) => record.game));
+      const query = new URLSearchParams({
+        select: "game,player,score,result,created_at",
+        game: `in.(${recordGames.join(",")})`
+      });
+
+      try {
+        const response = await fetch(`${SCORE_API}?${query}`, {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        if (!response.ok) throw new Error(`Supabase SELECT failed: ${response.status}`);
+        const records = await response.json();
+
+        games.forEach((game) => {
+          game.records.forEach((rule, index) => {
+            const matching = records.filter((record) => record.game === rule.game);
+            const best = findBestRecord(matching, rule);
+            const element = document.getElementById(`record-${game.id}-${index}`);
+            if (element) element.textContent = `🏆 ${rule.label ? `${rule.label}：` : ""}${formatRecord(best, rule)}`;
+          });
+        });
+      } catch (error) {
+        console.warn("家庭纪录加载失败", error);
+        document.querySelectorAll(".family-record").forEach((element) => {
+          element.textContent = "🏆 家庭纪录暂时无法加载";
+        });
+      }
+    }
+
+    gameCountEl.textContent = games.length;
+    featuredGamesEl.innerHTML = games.filter((game) => game.featured).map(renderGameCard).join("");
+    otherGamesEl.innerHTML = games.filter((game) => !game.featured).map(renderGameCard).join("");
+    loadFamilyRecords();
   </script>
 </body>
 </html>
