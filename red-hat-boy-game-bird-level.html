@@ -136,6 +136,26 @@
       transform: translateY(2px);
       background: linear-gradient(180deg, #c9f8dc 0%, #44ad68 100%);
     }
+
+    .online-bar { display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px; color:#243746; font-weight:bold; }
+    .online-btn { border:2px solid #2f4858; border-radius:12px; background:#fff7d6; color:#243746; padding:9px 14px; font:inherit; font-weight:bold; cursor:pointer; box-shadow:0 4px 0 #2f4858; }
+    .online-status { min-height:20px; font-size:14px; }
+    .online-modal { position:fixed; z-index:30; inset:0; display:none; align-items:center; justify-content:center; padding:18px; background:rgba(135,206,235,.9); }
+    .online-modal.is-visible { display:flex; }
+    .online-panel { width:min(760px,96vw); max-height:90vh; overflow:auto; border:4px solid #2f4858; border-radius:14px; background:#fff; padding:20px; box-shadow:8px 8px 0 #2f4858; }
+    .online-header { display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom:3px solid #2f4858; padding-bottom:12px; }
+    .online-header h2 { margin:0; color:#243746; }
+    .online-close { width:42px; height:42px; padding:0; font-size:24px; }
+    .online-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; margin-top:18px; }
+    .online-section:first-child { grid-column:1/-1; }
+    .online-section h3 { margin:0 0 8px; color:#243746; }
+    .online-list { border-top:2px solid #2f4858; min-height:48px; }
+    .online-row { display:grid; grid-template-columns:34px minmax(72px,1fr) auto; gap:8px; padding:9px 0; border-bottom:1px solid #aaa; color:#243746; font-weight:bold; }
+    .online-row span:last-child { text-align:right; }
+    .online-message { color:#667; font-weight:bold; }
+    .online-retry { display:none; margin-top:16px; }
+    .online-retry.is-visible { display:inline-block; }
+    @media(max-width:680px){.online-grid{grid-template-columns:1fr}.online-section:first-child{grid-column:auto}.online-row{font-size:13px}}
   </style>
 </head>
 <body>
@@ -158,11 +178,33 @@
     <div class="restart-controls">
       <button class="restart-btn" aria-label="重新开始">重新开始</button>
     </div>
+    <div class="online-bar"><span>当前玩家：<strong id="familyPlayerDisplay">爸爸</strong></span><button id="leaderboardButton" class="online-btn" type="button">在线排行榜</button><span id="uploadStatus" class="online-status" role="status" aria-live="polite"></span></div>
   </div>
+  <div id="leaderboardModal" class="online-modal" role="dialog" aria-modal="true" aria-labelledby="leaderboardTitle"><div class="online-panel">
+    <div class="online-header"><h2 id="leaderboardTitle">通关排行榜</h2><button id="leaderboardClose" class="online-btn online-close" type="button" aria-label="关闭">×</button></div>
+    <div class="online-grid"><section class="online-section"><h3>最快通关 TOP 3</h3><div id="topScores" class="online-list"></div></section><section class="online-section"><h3>最近 10 次通关</h3><div id="recentScores" class="online-list"></div></section><section class="online-section"><h3 id="myScoresTitle">我的最近 10 次通关</h3><div id="myScores" class="online-list"></div></section></div>
+    <button id="leaderboardRetry" class="online-btn online-retry" type="button">重新加载</button>
+  </div></div>
 
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
+    const familyPlayerDisplay = document.getElementById("familyPlayerDisplay");
+    const uploadStatus = document.getElementById("uploadStatus");
+    const leaderboardModal = document.getElementById("leaderboardModal");
+    const leaderboardButton = document.getElementById("leaderboardButton");
+    const leaderboardClose = document.getElementById("leaderboardClose");
+    const leaderboardRetry = document.getElementById("leaderboardRetry");
+    const topScores = document.getElementById("topScores");
+    const recentScores = document.getElementById("recentScores");
+    const myScores = document.getElementById("myScores");
+    const myScoresTitle = document.getElementById("myScoresTitle");
+    const SUPABASE_URL = "https://euvhugrohdejsjdehkze.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_IoILNvOG-OvT6HhWILSpGw_0TJh81ue";
+    const SCORE_API = `${SUPABASE_URL}/rest/v1/scores`;
+    const GAME_ID = "red_hat_bird_4_levels";
+    const FAMILY_PLAYERS = ["爸爸", "婠婠", "米宝"];
+    const currentPlayer = loadFamilyPlayer();
 
     const world = {
       height: canvas.height,
@@ -453,6 +495,14 @@
     let levelSelectMode = false;
     let selectedLevelIndex = 0;
     let selectedWarpIndex = 0;
+    let scoreUploaded = false;
+    let runEligible = true;
+    let runStartedAt = performance.now();
+    let pausedTotalMs = 0;
+    let leaderboardOpenedAt = 0;
+    let onlinePanelOpen = false;
+
+    function loadFamilyPlayer() { try { const player=localStorage.getItem("familyPlayer"); return FAMILY_PLAYERS.includes(player)?player:FAMILY_PLAYERS[0]; } catch(error) { return FAMILY_PLAYERS[0]; } }
     let birdRun = null;
     let flightPressed = false;
 
@@ -628,6 +678,11 @@
       gameWon = false;
       levelSelectMode = false;
       selectedLevelIndex = 0;
+      scoreUploaded = false;
+      runEligible = true;
+      runStartedAt = performance.now();
+      pausedTotalMs = 0;
+      uploadStatus.textContent = "";
       placePlayerAtSpawn();
     }
 
@@ -839,6 +894,7 @@
     function tryAdvanceLevel() {
       if (currentLevelIndex === levels.length - 1) {
         gameWon = true;
+        completeRun();
       } else {
         currentLevelIndex += 1;
         lives = maxLives;
@@ -857,6 +913,7 @@
     function warpToSelection() {
       const warpOptions = getWarpOptions();
       const choice = warpOptions[selectedWarpIndex];
+      runEligible = false;
       currentLevelIndex = choice.levelIndex;
       score = choice.toDoor ? levelTemplates[choice.levelIndex].scoreGoal : 0;
       lives = maxLives;
@@ -1059,7 +1116,7 @@
     }
 
     function update() {
-      if (gameOver || gameWon || levelSelectMode) {
+      if (gameOver || gameWon || levelSelectMode || onlinePanelOpen) {
         return;
       }
 
@@ -1868,6 +1925,34 @@
       }
     }
 
+    function formatRunTime(centiseconds) {
+      const total = Math.max(0, Number(centiseconds) || 0);
+      const minutes = Math.floor(total / 6000);
+      const seconds = Math.floor((total % 6000) / 100);
+      const fraction = String(Math.floor(total % 100)).padStart(2, "0");
+      return `${minutes}分${String(seconds).padStart(2, "0")}.${fraction}秒`;
+    }
+
+    function completeRun() {
+      if (!runEligible || scoreUploaded) return;
+      scoreUploaded = true;
+      const elapsedMs = Math.max(0, performance.now() - runStartedAt - pausedTotalMs);
+      const timeScore = Math.round(elapsedMs / 10);
+      const duration = Math.round(elapsedMs / 1000);
+      const result = `4关通关 ${formatRunTime(timeScore)}`;
+      uploadStatus.textContent = "正在上传成绩...";
+      fetch(SCORE_API, { method:"POST", headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json",Prefer:"return=minimal"}, body:JSON.stringify({game:GAME_ID,player:currentPlayer,score:timeScore,result,duration}) })
+        .then(response=>{if(!response.ok)throw new Error(`Supabase INSERT failed: ${response.status}`);uploadStatus.textContent="成绩已上传";})
+        .catch(error=>{console.warn("成绩上传失败",error);uploadStatus.textContent="成绩上传失败";});
+    }
+
+    async function fetchScores(order,limit,player="") { const query=new URLSearchParams({select:"player,score,result,duration,created_at",game:`eq.${GAME_ID}`,order,limit:String(limit)});if(player)query.set("player",`eq.${player}`);const response=await fetch(`${SCORE_API}?${query}`,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}});if(!response.ok)throw new Error(`Supabase SELECT failed: ${response.status}`);return response.json(); }
+    function showListMessage(container,text){container.innerHTML="";const p=document.createElement("p");p.className="online-message";p.textContent=text;container.append(p);}
+    function renderScores(container,records){container.innerHTML="";if(!records.length){showListMessage(container,"暂无成绩");return;}records.forEach((record,index)=>{const row=document.createElement("div");row.className="online-row";const displayTime=(typeof record.result==="string"&&record.result.includes("通关"))?record.result.replace(/^\d+关通关\s*/,""):formatRunTime(record.score);[`#${index+1}`,record.player||"未知玩家",displayTime].forEach(value=>{const span=document.createElement("span");span.textContent=value;row.append(span);});container.append(row);});}
+    async function loadLeaderboard(){leaderboardRetry.classList.remove("is-visible");[topScores,recentScores,myScores].forEach(el=>showListMessage(el,"加载中..."));const jobs=[fetchScores("score.asc,created_at.asc",3).then(r=>{renderScores(topScores,r);return true;}).catch(e=>{console.warn(e);showListMessage(topScores,"排行榜暂时无法加载");return false;}),fetchScores("created_at.desc",10).then(r=>{renderScores(recentScores,r);return true;}).catch(e=>{console.warn(e);showListMessage(recentScores,"排行榜暂时无法加载");return false;}),fetchScores("created_at.desc",10,currentPlayer).then(r=>{renderScores(myScores,r);return true;}).catch(e=>{console.warn(e);showListMessage(myScores,"排行榜暂时无法加载");return false;})];const results=await Promise.all(jobs);leaderboardRetry.classList.toggle("is-visible",results.includes(false));}
+    function openLeaderboard(){onlinePanelOpen=true;if(!gameOver&&!gameWon&&!levelSelectMode)leaderboardOpenedAt=performance.now();leaderboardModal.classList.add("is-visible");keys.left=false;keys.right=false;flightPressed=false;loadLeaderboard();}
+    function closeLeaderboard(){leaderboardModal.classList.remove("is-visible");if(leaderboardOpenedAt){pausedTotalMs+=performance.now()-leaderboardOpenedAt;leaderboardOpenedAt=0;}onlinePanelOpen=false;}
+
     function gameLoop() {
       update();
       render();
@@ -1921,6 +2006,7 @@
     }
 
     window.addEventListener("keydown", (event) => {
+      if (onlinePanelOpen) { if (event.code === "Escape") closeLeaderboard(); return; }
       if (isBirdLevel() && !levelSelectMode) {
         if (event.code === "Space" || event.code === "ArrowUp") {
           handleBirdPressStart(event);
@@ -2056,6 +2142,13 @@
         event.preventDefault();
       }
     }, { passive: false });
+
+    familyPlayerDisplay.textContent = currentPlayer;
+    myScoresTitle.textContent = `${currentPlayer}的最近 10 次通关`;
+    leaderboardButton.addEventListener("click", openLeaderboard);
+    leaderboardClose.addEventListener("click", closeLeaderboard);
+    leaderboardRetry.addEventListener("click", loadLeaderboard);
+    leaderboardModal.addEventListener("click", (event) => { if (event.target === leaderboardModal) closeLeaderboard(); });
 
     resetGame();
     gameLoop();
