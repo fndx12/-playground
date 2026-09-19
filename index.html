@@ -98,6 +98,49 @@
       font-weight: 700;
     }
 
+    .hero-tools {
+      display: grid;
+      grid-template-columns: minmax(150px, auto) 116px;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .player-control {
+      display: grid;
+      gap: 7px;
+      min-width: 150px;
+      padding: 12px 14px;
+      border: 1px solid rgba(47, 182, 109, 0.28);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 10px 22px rgba(47, 182, 109, 0.08);
+    }
+
+    .player-control label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .player-control select {
+      width: 100%;
+      min-height: 42px;
+      padding: 7px 34px 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #ffffff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .player-control select:focus-visible {
+      outline: 3px solid rgba(47, 128, 237, 0.24);
+      outline-offset: 2px;
+    }
+
     .games {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -215,6 +258,14 @@
         text-align: left;
       }
 
+      .hero-tools {
+        grid-template-columns: minmax(0, 1fr) minmax(110px, 0.7fr);
+      }
+
+      .player-control {
+        min-width: 0;
+      }
+
       .count span {
         margin-top: 0;
       }
@@ -238,9 +289,19 @@
         <h1 id="hall-title">我的游戏大厅</h1>
         <p class="subtitle">这里整理了当前项目里的 HTML 小游戏。点击卡片里的按钮，就可以直接开始玩。</p>
       </div>
-      <div class="count" aria-label="游戏数量">
-        <strong id="gameCount">0</strong>
-        <span>个小游戏</span>
+      <div class="hero-tools">
+        <div class="player-control">
+          <label for="familyPlayerSelect">当前玩家</label>
+          <select id="familyPlayerSelect">
+            <option value="爸爸">爸爸</option>
+            <option value="婠婠">婠婠</option>
+            <option value="米宝">米宝</option>
+          </select>
+        </div>
+        <div class="count" aria-label="游戏数量">
+          <strong id="gameCount">0</strong>
+          <span>个小游戏</span>
+        </div>
       </div>
     </section>
 
@@ -301,6 +362,31 @@
 
     const gamesEl = document.getElementById("games");
     const gameCountEl = document.getElementById("gameCount");
+    const familyPlayerSelect = document.getElementById("familyPlayerSelect");
+    const PLAYER_STORAGE_KEY = "familyPlayer";
+    const FAMILY_PLAYERS = ["爸爸", "婠婠", "米宝"];
+
+    function loadFamilyPlayer() {
+      try {
+        const savedPlayer = localStorage.getItem(PLAYER_STORAGE_KEY);
+        return FAMILY_PLAYERS.includes(savedPlayer) ? savedPlayer : FAMILY_PLAYERS[0];
+      } catch (error) {
+        return FAMILY_PLAYERS[0];
+      }
+    }
+
+    familyPlayerSelect.value = loadFamilyPlayer();
+    familyPlayerSelect.addEventListener("change", () => {
+      const player = FAMILY_PLAYERS.includes(familyPlayerSelect.value)
+        ? familyPlayerSelect.value
+        : FAMILY_PLAYERS[0];
+      familyPlayerSelect.value = player;
+      try {
+        localStorage.setItem(PLAYER_STORAGE_KEY, player);
+      } catch (error) {
+        console.warn("无法保存玩家选择", error);
+      }
+    });
 
     gameCountEl.textContent = games.length;
 
