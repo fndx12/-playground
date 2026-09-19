@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>红帽小子大冒险</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #87ceeb 0%, #ffe7d6 100%);
+      font-family: "Trebuchet MS", "Microsoft YaHei", sans-serif;
+    }
+
+    .game-shell {
+      width: 960px;
+      max-width: 96vw;
+    }
+
+    #game {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 4px solid #2f4858;
+      border-radius: 12px;
+      box-shadow: 0 18px 40px rgba(47, 72, 88, 0.22);
+    }
+
+    .tip {
+      margin-top: 10px;
+      color: #243746;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .touch-controls {
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    .touch-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .touch-btn {
+      width: 68px;
+      height: 68px;
+      border: none;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fff7d6 0%, #f3c96a 100%);
+      color: #2f4858;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 8px 18px rgba(47, 72, 88, 0.2);
+    }
+
+    .touch-btn:active,
+    .touch-btn.active {
+      transform: translateY(2px);
+      background: linear-gradient(180deg, #ffe7a8 0%, #e5ae46 100%);
+    }
+
+    .touch-btn.jump {
+      width: 90px;
+      background: linear-gradient(180deg, #ffe7e7 0%, #ff8d7b 100%);
+    }
+  </style>
+</head>
+<body>
+  <div class="game-shell">
+    <canvas id="game" width="960" height="540"></canvas>
+    <div class="tip">方向键左右移动，空格键跳跃。踩敌人得分，收集星星召唤绿色盟友，按 R 重新开始。</div>
+    <div class="touch-controls">
+      <div class="touch-group">
+        <button class="touch-btn" data-control="left" aria-label="向左">◀</button>
+        <button class="touch-btn" data-control="right" aria-label="向右">▶</button>
+      </div>
+      <div class="touch-group">
+        <button class="touch-btn jump" data-control="jump" aria-label="跳跃">跳</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const world = {
+      height: canvas.height,
+      groundY: 450
+    };
+
+    const keys = {
+      left: false,
+      right: false
+    };
+
+    const gravity = 0.75;
+    const moveSpeed = 4.2;
+    const baseJumpForce = -14;
+    const boostedJumpForce = -18;
+    const maxLives = 3;
+
+    const levelTemplates = [
+      {
+        name: "第 1 关",
+        width: 3200,
+        spawnX: 80,
+        scoreGoal: 7,
+        theme: {
+          sky: "#7ecdf3",
+          cloud: "rgba(255,255,255,0.86)",
+          ground: "#9dd866",
+          dirt: "#7a5230",
+          platform: "#d48d44",
+          platformDetail: "#f2c078",
+          lava: null,
+          lavaGlow: null,
+          dark: false,
+          starscape: false
+        },
+        platforms: [
+          { x: 300, y: 360, width: 90, height: 20 },
+          { x: 470, y: 300, width: 110, height: 20 },
+          { x: 680, y: 250, width: 120, height: 20 },
+          { x: 980, y: 360, width: 100, height: 20 },
+          { x: 1140, y: 310, width: 100, height: 20 },
+          { x: 1320, y: 260, width: 120, height: 20 },
+          { x: 1650, y: 340, width: 100, height: 20 },
+          { x: 1810, y: 285, width: 100, height: 20 },
+          { x: 2120, y: 350, width: 110, height: 20 },
+          { x: 2290, y: 295, width: 100, height: 20 },
+          { x: 2480, y: 245, width: 120, height: 20 },
+          { x: 2740, y: 340, width: 110, height: 20 }
+        ],
+        coins: [
+          { x: 355, y: 325, radius: 14 },
+          { x: 1360, y: 225, radius: 14 },
+          { x: 1910, y: 250, radius: 14 },
+          { x: 2535, y: 210, radius: 14 },
+          { x: 2785, y: 305, radius: 14 }
+        ],
+        flowers: [
+          { x: 725, y: 214, width: 28, height: 36 },
+          { x: 1685, y: 304, width: 28, height: 36 },
+          { x: 2515, y: 209, width: 28, height: 36 }
+        ],
+        stars: [
+          { x: 2050, y: 315, size: 28 }
+        ],
+        enemies: [
+          { x: 560, y: world.groundY - 30, width: 30, height: 30 },
+          { x: 1200, y: 280, width: 30, height: 30 },
+          { x: 1735, y: world.groundY - 30, width: 30, height: 30 },
+          { x: 2335, y: 265, width: 30, height: 30 },
+          { x: 2860, y: world.groundY - 30, width: 30, height: 30 }
+        ],
+        spikes: [
+          { x: 870, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 990, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 1510, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 1685, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 2660, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 2820, y: world.groundY - 26, width: 18, height: 26 }
+        ],
+        lavaPools: [],
+        door: { x: 3010, y: world.groundY - 94, width: 56, height: 94 }
+      },
+      {
+        name: "第 2 关",
+        width: 3500,
+        spawnX: 80,
+        entrySpawnX: 150,
+        scoreGoal: 9,
+        theme: {
+          sky: "#5a1010",
+          cloud: "rgba(255,180,120,0.15)",
+          ground: "#5b3c2e",
+          dirt: "#2c1610",
+          platform: "#8f5a2b",
+          platformDetail: "#d49a54",
+          lava: "#ff5c33",
+          lavaGlow: "rgba(255,168,71,0.5)",
+          dark: true,
+          starscape: false
+        },
+        platforms: [
+          { x: 340, y: 350, width: 110, height: 20 },
+          { x: 560, y: 300, width: 100, height: 20 },
+          { x: 760, y: 250, width: 120, height: 20 },
+          { x: 1030, y: 360, width: 100, height: 20 },
+          { x: 1210, y: 310, width: 110, height: 20 },
+          { x: 1480, y: 270, width: 120, height: 20 },
+          { x: 1870, y: 330, width: 110, height: 20 },
+          { x: 2060, y: 285, width: 100, height: 20 },
+          { x: 2360, y: 245, width: 120, height: 20 },
+          { x: 2640, y: 330, width: 100, height: 20 },
+          { x: 2880, y: 280, width: 110, height: 20 },
+          { x: 3140, y: 230, width: 120, height: 20 }
+        ],
+        coins: [
+          { x: 390, y: 315, radius: 14 },
+          { x: 810, y: 215, radius: 14 },
+          { x: 1530, y: 235, radius: 14 },
+          { x: 2105, y: 250, radius: 14 },
+          { x: 2415, y: 210, radius: 14 },
+          { x: 3195, y: 195, radius: 14 }
+        ],
+        flowers: [
+          { x: 1245, y: 274, width: 28, height: 36 },
+          { x: 2905, y: 244, width: 28, height: 36 }
+        ],
+        healthBlocks: [
+          { x: 1700, y: 220, width: 42, height: 42 }
+        ],
+        stars: [
+          { x: 1620, y: 220, size: 28 }
+        ],
+        enemies: [
+          { x: 690, y: world.groundY - 30, width: 30, height: 30 },
+          { x: 1565, y: 240, width: 30, height: 30 },
+          { x: 2140, y: world.groundY - 30, width: 30, height: 30 },
+          { x: 2700, y: 300, width: 30, height: 30 },
+          { x: 3250, y: world.groundY - 30, width: 30, height: 30 }
+        ],
+        spikes: [
+          { x: 950, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 1085, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 1780, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 1915, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 3030, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 3200, y: world.groundY - 26, width: 18, height: 26 }
+        ],
+        lavaPools: [
+          { x: 1180, y: world.groundY, width: 120, height: 90 },
+          { x: 2240, y: world.groundY, width: 130, height: 90 },
+          { x: 3360, y: world.groundY, width: 90, height: 90 }
+        ],
+        door: { x: 3370, y: world.groundY - 94, width: 56, height: 94 }
+      },
+      {
+        name: "第 3 关",
+        width: 3300,
+        spawnX: 80,
+        entrySpawnX: 150,
+        scoreGoal: 7,
+        theme: {
+          sky: "#081229",
+          cloud: "rgba(255,255,255,0.08)",
+          ground: "#d9bf52",
+          dirt: "#9c7c23",
+          platform: "#dcb64f",
+          platformDetail: "#fff0a1",
+          lava: null,
+          lavaGlow: null,
+          dark: true,
+          starscape: true
+        },
+        platforms: [
+          { x: 420, y: 360, width: 110, height: 20 },
+          { x: 650, y: 330, width: 100, height: 20 },
+          { x: 890, y: 300, width: 120, height: 20 },
+          { x: 1760, y: 340, width: 120, height: 20 },
+          { x: 1980, y: 325, width: 110, height: 20 },
+          { x: 2260, y: 305, width: 120, height: 20 },
+          { x: 2620, y: 340, width: 120, height: 20 },
+          { x: 2860, y: 320, width: 100, height: 20 }
+        ],
+        coins: [
+          { x: 470, y: 325, radius: 14 },
+          { x: 700, y: 295, radius: 14 },
+          { x: 940, y: 265, radius: 14 },
+          { x: 1810, y: 305, radius: 14 },
+          { x: 2035, y: 290, radius: 14 },
+          { x: 2310, y: 270, radius: 14 },
+          { x: 2680, y: 305, radius: 14 },
+          { x: 2895, y: 285, radius: 14 }
+        ],
+        flowers: [],
+        healthBlocks: [],
+        stars: [
+          { x: 2150, y: 235, size: 28 }
+        ],
+        summonCoins: [
+          { x: 1120, y: 390, size: 26 }
+        ],
+        dragonRide: {
+          startX: 1080,
+          pickupX: 1120,
+          endX: 1710,
+          y: 300,
+          speed: 4,
+          dropX: 1790,
+          dropY: 278
+        },
+        enemies: [
+          { x: 560, y: world.groundY - 30, width: 30, height: 30 },
+          { x: 1840, y: 290, width: 30, height: 30 },
+          { x: 2680, y: 290, width: 30, height: 30 }
+        ],
+        spikes: [
+          { x: 340, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 520, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 2480, y: world.groundY - 26, width: 18, height: 26 },
+          { x: 3060, y: world.groundY - 26, width: 18, height: 26 }
+        ],
+        lavaPools: [
+          { x: 1250, y: world.groundY, width: 360, height: 90 }
+        ],
+        door: { x: 3120, y: world.groundY - 94, width: 56, height: 94 }
+      }
+    ];
+
+    let levels = [];
+    let score = 0;
+    let lives = maxLives;
+    let currentLevelIndex = 0;
+    let gameOver = false;
+    let gameWon = false;
+    let cameraX = 0;
+    let dragon = null;
+    let animationTick = 0;
+    let secretProgress = 0;
+    let levelSelectMode = false;
+    let selectedLevelIndex = 0;
+    let selectedWarpIndex = 0;
+
+    const secretSequence = ["jump", "jump", "left", "right", "right"];
+    const touchButtons = Array.from(document.querySelectorAll(".touch-btn"));
+
+    const player = {
+      x: 80,
+      y: 0,
+      width: 42,
+      height: 62,
+      vx: 0,
+      vy: 0,
+      onGround: false,
+      jumpForce: baseJumpForce,
+      boosted: false
+    };
+
+    function cloneItems(items, extra = {}) {
+      return items.map((item) => ({ ...item, ...extra }));
+    }
+
+    function buildLevels() {
+      return levelTemplates.map((level) => ({
+        ...level,
+        platforms: cloneItems(level.platforms),
+        coins: cloneItems(level.coins, { collected: false }),
+        flowers: cloneItems(level.flowers, { collected: false }),
+        healthBlocks: cloneItems(level.healthBlocks || [], { used: false, bumpOffset: 0 }),
+        stars: cloneItems(level.stars, { collected: false }),
+        summonCoins: cloneItems(level.summonCoins || [], { collected: false }),
+        enemies: cloneItems(level.enemies, { defeated: false }),
+        allies: [],
+        spikes: cloneItems(level.spikes),
+        lavaPools: cloneItems(level.lavaPools),
+        door: { ...level.door },
+        theme: { ...level.theme },
+        dragonRide: level.dragonRide ? { ...level.dragonRide } : null
+      }));
+    }
+
+    function resetLevelState(levelIndex) {
+      const template = levelTemplates[levelIndex];
+      levels[levelIndex].coins = cloneItems(template.coins, { collected: false });
+      levels[levelIndex].flowers = cloneItems(template.flowers, { collected: false });
+      levels[levelIndex].healthBlocks = cloneItems(template.healthBlocks || [], { used: false, bumpOffset: 0 });
+      levels[levelIndex].stars = cloneItems(template.stars, { collected: false });
+      levels[levelIndex].summonCoins = cloneItems(template.summonCoins || [], { collected: false });
+      levels[levelIndex].enemies = cloneItems(template.enemies, { defeated: false });
+      levels[levelIndex].allies = [];
+      dragon = null;
+    }
+
+    function getCurrentLevel() {
+      return levels[currentLevelIndex];
+    }
+
+    function placePlayerAtSpawn() {
+      const level = getCurrentLevel();
+      player.x = level.entrySpawnX || level.spawnX;
+      player.y = world.groundY - player.height;
+      player.vx = 0;
+      player.vy = 0;
+      player.onGround = true;
+      player.jumpForce = baseJumpForce;
+      player.boosted = false;
+      cameraX = 0;
+      dragon = null;
+      secretProgress = 0;
+    }
+
+    function getWarpOptions() {
+      const levelWarps = levelTemplates.map((level, index) => ({
+        label: level.name,
+        levelIndex: index,
+        toDoor: false
+      }));
+
+      levelWarps.push({
+        label: "最终门口",
+        levelIndex: levelTemplates.length - 1,
+        toDoor: true
+      });
+
+      return levelWarps;
+    }
+
+    function resetGame() {
+      levels = buildLevels();
+      score = 0;
+      lives = maxLives;
+      currentLevelIndex = 0;
+      gameOver = false;
+      gameWon = false;
+      levelSelectMode = false;
+      selectedLevelIndex = 0;
+      placePlayerAtSpawn();
+    }
+
+    function respawnCurrentLevel() {
+      placePlayerAtSpawn();
+    }
+
+    function rectsIntersect(a, b) {
+      return (
+        a.x < b.x + b.width &&
+        a.x + a.width > b.x &&
+        a.y < b.y + b.height &&
+        a.y + a.height > b.y
+      );
+    }
+
+    function circleRectIntersect(circle, rect) {
+      const closestX = Math.max(rect.x, Math.min(circle.x, rect.x + rect.width));
+      const closestY = Math.max(rect.y, Math.min(circle.y, rect.y + rect.height));
+      const dx = circle.x - closestX;
+      const dy = circle.y - closestY;
+      return dx * dx + dy * dy < circle.radius * circle.radius;
+    }
+
+    function takeDamage() {
+      lives = Math.max(0, lives - 1);
+      if (lives <= 0) {
+        score = 0;
+        gameOver = true;
+        return;
+      }
+      score = 0;
+      resetLevelState(currentLevelIndex);
+      respawnCurrentLevel();
+    }
+
+    function footInsideLavaGap(level, actor) {
+      const footX = actor.x + actor.width / 2;
+      return level.lavaPools.some((lava) => footX > lava.x && footX < lava.x + lava.width);
+    }
+
+    function resolveActorVerticalCollisions(actor, previousY, level) {
+      actor.onGround = false;
+      const groundTop = world.groundY - actor.height;
+      if (actor.y >= groundTop && !footInsideLavaGap(level, actor)) {
+        actor.y = groundTop;
+        actor.vy = 0;
+        actor.onGround = true;
+      }
+
+      for (const platform of level.platforms) {
+        const platformTop = platform.y - actor.height;
+        const wasAbove = previousY <= platformTop;
+        const crossedTop = actor.y >= platformTop;
+        const overlapX = actor.x + actor.width > platform.x && actor.x < platform.x + platform.width;
+        if (actor.vy >= 0 && wasAbove && crossedTop && overlapX) {
+          actor.y = platformTop;
+          actor.vy = 0;
+          actor.onGround = true;
+        }
+      }
+
+      if (actor.y < 0) {
+        actor.y = 0;
+        actor.vy = 0;
+      }
+    }
+
+    function updateCamera() {
+      const level = getCurrentLevel();
+      const target = player.x - canvas.width * 0.35;
+      cameraX = Math.max(0, Math.min(target, level.width - canvas.width));
+    }
+
+    function isAtLevelEntrance() {
+      const level = getCurrentLevel();
+      const entranceX = level.entrySpawnX || level.spawnX;
+      return Math.abs(player.x - entranceX) < 90 && Math.abs(player.y - (world.groundY - player.height)) < 6;
+    }
+
+    function registerSecretInput(step) {
+      if (!isAtLevelEntrance() || gameOver || gameWon || levelSelectMode) {
+        secretProgress = 0;
+        return;
+      }
+
+      if (secretSequence[secretProgress] === step) {
+        secretProgress += 1;
+        if (secretProgress === secretSequence.length) {
+          levelSelectMode = true;
+          selectedLevelIndex = currentLevelIndex;
+          selectedWarpIndex = currentLevelIndex;
+          secretProgress = 0;
+        }
+      } else {
+        secretProgress = secretSequence[0] === step ? 1 : 0;
+      }
+    }
+
+    function summonDragon(level) {
+      if (!level.dragonRide || dragon) {
+        return;
+      }
+      dragon = {
+        x: level.dragonRide.startX,
+        y: level.dragonRide.y,
+        width: 120,
+        height: 56,
+        speed: level.dragonRide.speed,
+        carrying: false,
+        finished: false
+      };
+    }
+
+    function updateDragon(level) {
+      if (!dragon) {
+        return;
+      }
+
+      dragon.x += dragon.speed;
+
+      if (!dragon.carrying && dragon.x + 44 >= level.dragonRide.pickupX) {
+        dragon.carrying = true;
+      }
+
+      if (dragon.carrying) {
+        player.x = dragon.x + 36;
+        player.y = dragon.y - player.height + 6;
+        player.vx = 0;
+        player.vy = 0;
+        player.onGround = false;
+      }
+
+      if (dragon.x >= level.dragonRide.endX) {
+        if (dragon.carrying) {
+          player.x = level.dragonRide.dropX || level.dragonRide.endX + 34;
+          player.y = typeof level.dragonRide.dropY === "number"
+            ? level.dragonRide.dropY
+            : world.groundY - player.height;
+          player.vy = 0;
+          player.onGround = true;
+        }
+        dragon.finished = true;
+        dragon = null;
+      }
+    }
+
+    function spawnAlly(level) {
+      level.allies.push({
+        x: Math.max(0, player.x - 48),
+        y: player.y,
+        width: 30,
+        height: 30,
+        vx: 0,
+        vy: 0,
+        onGround: false
+      });
+    }
+
+    function updateAllies(level) {
+      for (const ally of level.allies) {
+        let targetEnemy = null;
+        let bestDistance = 260;
+        for (const enemy of level.enemies) {
+          if (enemy.defeated) {
+            continue;
+          }
+          const distance = Math.abs(enemy.x - ally.x);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            targetEnemy = enemy;
+          }
+        }
+
+        if (targetEnemy) {
+          ally.vx = targetEnemy.x > ally.x ? 2 : -2;
+          if (ally.onGround) {
+            const enemyHigher = targetEnemy.y + 6 < ally.y;
+            const veryClose = Math.abs(targetEnemy.x - ally.x) < 44;
+            if (enemyHigher || veryClose && targetEnemy.y < ally.y) {
+              ally.vy = -12;
+              ally.onGround = false;
+            }
+          }
+        } else {
+          const desiredX = player.x - 60;
+          const delta = desiredX - ally.x;
+          ally.vx = Math.abs(delta) < 6 ? 0 : (delta > 0 ? 1.8 : -1.8);
+        }
+
+        ally.x += ally.vx;
+        ally.x = Math.max(0, Math.min(ally.x, level.width - ally.width));
+
+        const previousY = ally.y;
+        ally.vy += gravity;
+        ally.y += ally.vy;
+        resolveActorVerticalCollisions(ally, previousY, level);
+
+        const allyRect = { x: ally.x, y: ally.y, width: ally.width, height: ally.height };
+        for (const enemy of level.enemies) {
+          if (!enemy.defeated && rectsIntersect(allyRect, enemy)) {
+            enemy.defeated = true;
+            score += 1;
+          }
+        }
+      }
+    }
+
+    function tryAdvanceLevel() {
+      if (currentLevelIndex === levels.length - 1) {
+        gameWon = true;
+      } else {
+        currentLevelIndex += 1;
+        lives = maxLives;
+        placePlayerAtSpawn();
+      }
+    }
+
+    function performJump() {
+      if (!gameOver && !gameWon && !levelSelectMode && player.onGround) {
+        registerSecretInput("jump");
+        player.vy = player.jumpForce;
+        player.onGround = false;
+      }
+    }
+
+    function warpToSelection() {
+      const warpOptions = getWarpOptions();
+      const choice = warpOptions[selectedWarpIndex];
+      currentLevelIndex = choice.levelIndex;
+      score = choice.toDoor ? levelTemplates[choice.levelIndex].scoreGoal : 0;
+      lives = maxLives;
+      levelSelectMode = false;
+      resetLevelState(currentLevelIndex);
+      placePlayerAtSpawn();
+
+      if (choice.toDoor) {
+        const level = getCurrentLevel();
+        player.x = level.door.x - 48;
+        player.y = world.groundY - player.height;
+        cameraX = Math.max(0, Math.min(player.x - canvas.width * 0.35, level.width - canvas.width));
+      }
+    }
+
+    function update() {
+      if (gameOver || gameWon || levelSelectMode) {
+        return;
+      }
+
+      animationTick += 1;
+
+      const level = getCurrentLevel();
+      updateDragon(level);
+
+      if (dragon && dragon.carrying) {
+        updateCamera();
+        return;
+      }
+
+      player.vx = 0;
+      if (keys.left) {
+        player.vx = -moveSpeed;
+      }
+      if (keys.right) {
+        player.vx = moveSpeed;
+      }
+
+      player.x += player.vx;
+      player.x = Math.max(0, Math.min(player.x, level.width - player.width));
+
+      const previousY = player.y;
+      player.vy += gravity;
+      player.y += player.vy;
+      resolveActorVerticalCollisions(player, previousY, level);
+
+      const playerRect = { x: player.x, y: player.y, width: player.width, height: player.height };
+
+      for (const coin of level.coins) {
+        if (!coin.collected && circleRectIntersect({ x: coin.x, y: coin.y, radius: coin.radius }, playerRect)) {
+          coin.collected = true;
+          score += 1;
+        }
+      }
+
+      for (const flower of level.flowers) {
+        if (!flower.collected && rectsIntersect(playerRect, flower)) {
+          flower.collected = true;
+          player.boosted = true;
+          player.jumpForce = boostedJumpForce;
+        }
+      }
+
+      // 从下向上顶蓝色砖块可以恢复一格生命。
+      if (player.vy < 0) {
+        for (const block of level.healthBlocks) {
+          const hitBottom =
+            previousY >= block.y + block.height &&
+            player.y <= block.y + block.height &&
+            player.x + player.width > block.x &&
+            player.x < block.x + block.width;
+
+          if (hitBottom) {
+            player.y = block.y + block.height;
+            player.vy = 0;
+            if (!block.used) {
+              block.used = true;
+              block.bumpOffset = 10;
+              lives = Math.min(maxLives, lives + 1);
+            }
+          }
+        }
+      }
+
+      for (const star of level.stars) {
+        if (!star.collected && rectsIntersect(playerRect, { x: star.x, y: star.y, width: star.size, height: star.size })) {
+          star.collected = true;
+          spawnAlly(level);
+        }
+      }
+
+      for (const squareCoin of level.summonCoins || []) {
+        if (!squareCoin.collected && rectsIntersect(playerRect, { x: squareCoin.x, y: squareCoin.y, width: squareCoin.size, height: squareCoin.size })) {
+          squareCoin.collected = true;
+          score += 1;
+          summonDragon(level);
+        }
+      }
+
+      updateAllies(level);
+
+      for (const block of level.healthBlocks) {
+        if (block.bumpOffset > 0) {
+          block.bumpOffset = Math.max(0, block.bumpOffset - 1.5);
+        }
+      }
+
+      for (const enemy of level.enemies) {
+        if (enemy.defeated || !rectsIntersect(playerRect, enemy)) {
+          continue;
+        }
+        const playerBottomBeforeMove = previousY + player.height;
+        const stompedFromAbove = player.vy > 0 && playerBottomBeforeMove <= enemy.y + 8;
+        if (stompedFromAbove) {
+          enemy.defeated = true;
+          score += 1;
+          player.y = enemy.y - player.height;
+          player.vy = player.boosted ? -10 : -8;
+        } else {
+          takeDamage();
+          return;
+        }
+      }
+
+      for (const spike of level.spikes) {
+        if (rectsIntersect(playerRect, spike)) {
+          takeDamage();
+          return;
+        }
+      }
+
+      for (const lava of level.lavaPools) {
+        if (rectsIntersect(playerRect, lava)) {
+          takeDamage();
+          return;
+        }
+      }
+
+      if (rectsIntersect(playerRect, level.door) && !player.onGround && score >= level.scoreGoal) {
+        tryAdvanceLevel();
+        return;
+      }
+
+      updateCamera();
+    }
+
+    function drawCloud(x, y, scale, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y + 18 * scale, 90 * scale, 24 * scale);
+      ctx.fillRect(x + 18 * scale, y, 42 * scale, 26 * scale);
+      ctx.fillRect(x + 42 * scale, y + 8 * scale, 40 * scale, 24 * scale);
+    }
+
+    function drawBackground() {
+      const level = getCurrentLevel();
+      const theme = level.theme;
+      ctx.fillStyle = theme.sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const parallax = cameraX * 0.25;
+      if (!theme.starscape) {
+        drawCloud(120 - parallax % 700, 80, 1, theme.cloud);
+        drawCloud(480 - parallax % 900, 110, 1.2, theme.cloud);
+        drawCloud(820 - parallax % 800, 70, 0.9, theme.cloud);
+      } else {
+        ctx.fillStyle = "#ffffff";
+        for (let i = 0; i < 28; i++) {
+          const x = (i * 113 - parallax * 0.8) % (canvas.width + 120);
+          const drawX = x < 0 ? x + canvas.width + 120 : x;
+          const y = 35 + (i * 37) % 220;
+          const size = i % 4 === 0 ? 3 : 2;
+          ctx.fillRect(drawX, y, size, size);
+        }
+      }
+
+      if (theme.dark) {
+        ctx.fillStyle = "rgba(255,120,60,0.08)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      ctx.save();
+      ctx.translate(-cameraX, 0);
+
+      let segmentStart = 0;
+      for (const lava of level.lavaPools) {
+        const groundWidth = lava.x - segmentStart;
+        if (groundWidth > 0) {
+          ctx.fillStyle = theme.ground;
+          ctx.fillRect(segmentStart, world.groundY, groundWidth, world.height - world.groundY);
+          ctx.fillStyle = theme.dirt;
+          for (let i = segmentStart; i < lava.x; i += 40) {
+            ctx.fillRect(i, world.groundY, 30, world.height - world.groundY);
+          }
+        }
+        segmentStart = lava.x + lava.width;
+      }
+
+      if (segmentStart < level.width) {
+        ctx.fillStyle = theme.ground;
+        ctx.fillRect(segmentStart, world.groundY, level.width - segmentStart, world.height - world.groundY);
+        ctx.fillStyle = theme.dirt;
+        for (let i = segmentStart; i < level.width; i += 40) {
+          ctx.fillRect(i, world.groundY, 30, world.height - world.groundY);
+        }
+      }
+
+      ctx.fillStyle = theme.platform;
+      for (const platform of level.platforms) {
+        ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+        ctx.fillStyle = theme.platformDetail;
+        for (let x = platform.x + 8; x < platform.x + platform.width - 8; x += 24) {
+          ctx.fillRect(x, platform.y + 5, 14, 6);
+        }
+        ctx.fillStyle = theme.platform;
+      }
+
+      if (theme.lava) {
+        for (const lava of level.lavaPools) {
+          ctx.fillStyle = theme.lavaGlow;
+          ctx.fillRect(lava.x - 6, lava.y - 6, lava.width + 12, lava.height + 12);
+          ctx.fillStyle = theme.lava;
+          ctx.fillRect(lava.x, lava.y, lava.width, lava.height);
+          ctx.fillStyle = "#ffd166";
+          for (let x = lava.x + 8; x < lava.x + lava.width - 8; x += 22) {
+            ctx.fillRect(x, lava.y + 12, 10, 6);
+          }
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function drawPlayer() {
+      const x = player.x;
+      const y = player.y;
+      ctx.fillStyle = "#d85a4f";
+      ctx.fillRect(x + 8, y, 26, 10);
+      ctx.fillRect(x + 5, y + 8, 32, 6);
+      ctx.fillStyle = "#f5c39a";
+      ctx.fillRect(x + 11, y + 14, 20, 16);
+      ctx.fillStyle = "#dd4338";
+      ctx.fillRect(x + 9, y + 30, 24, 16);
+      ctx.fillStyle = "#284b8f";
+      ctx.fillRect(x + 7, y + 46, 11, 16);
+      ctx.fillRect(x + 24, y + 46, 11, 16);
+      ctx.fillStyle = "#5d3a1a";
+      ctx.fillRect(x + 6, y + 60, 13, 2);
+      ctx.fillRect(x + 23, y + 60, 13, 2);
+      ctx.fillStyle = "#111111";
+      ctx.fillRect(x + 16, y + 20, 2, 2);
+      ctx.fillRect(x + 24, y + 20, 2, 2);
+      if (player.boosted) {
+        ctx.fillStyle = "#ffd54a";
+        ctx.fillRect(x + 17, y + 32, 8, 8);
+      }
+    }
+
+    function drawCoins() {
+      const level = getCurrentLevel();
+      for (const coin of level.coins) {
+        if (coin.collected) {
+          continue;
+        }
+        ctx.fillStyle = "#f7c948";
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffe58f";
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, coin.radius * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawFlowers() {
+      const level = getCurrentLevel();
+      for (const flower of level.flowers) {
+        if (flower.collected) {
+          continue;
+        }
+        ctx.fillStyle = "#3fa34d";
+        ctx.fillRect(flower.x + 12, flower.y + 14, 4, 22);
+        ctx.fillRect(flower.x + 6, flower.y + 24, 8, 4);
+        ctx.fillRect(flower.x + 14, flower.y + 20, 8, 4);
+        ctx.fillStyle = "#ff7aa2";
+        ctx.fillRect(flower.x + 8, flower.y + 4, 12, 12);
+        ctx.fillStyle = "#ffd54a";
+        ctx.fillRect(flower.x + 11, flower.y + 7, 6, 6);
+      }
+    }
+
+    function drawHealthBlocks() {
+      const level = getCurrentLevel();
+      for (const block of level.healthBlocks) {
+        const y = block.y - block.bumpOffset;
+        ctx.fillStyle = block.used ? "#5d7fa6" : "#4f9cff";
+        ctx.fillRect(block.x, y, block.width, block.height);
+        ctx.fillStyle = "#bfe0ff";
+        ctx.fillRect(block.x + 6, y + 6, block.width - 12, 8);
+        ctx.fillRect(block.x + 6, y + 20, block.width - 12, 4);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(block.x + 16, y + 12, 10, 18);
+        ctx.fillRect(block.x + 12, y + 16, 18, 10);
+      }
+    }
+
+    function drawStars() {
+      const level = getCurrentLevel();
+      for (const star of level.stars) {
+        if (star.collected) {
+          continue;
+        }
+        ctx.fillStyle = "#ffe066";
+        ctx.beginPath();
+        ctx.moveTo(star.x + star.size / 2, star.y);
+        ctx.lineTo(star.x + star.size * 0.63, star.y + star.size * 0.35);
+        ctx.lineTo(star.x + star.size, star.y + star.size * 0.38);
+        ctx.lineTo(star.x + star.size * 0.72, star.y + star.size * 0.6);
+        ctx.lineTo(star.x + star.size * 0.82, star.y + star.size);
+        ctx.lineTo(star.x + star.size / 2, star.y + star.size * 0.76);
+        ctx.lineTo(star.x + star.size * 0.18, star.y + star.size);
+        ctx.lineTo(star.x + star.size * 0.28, star.y + star.size * 0.6);
+        ctx.lineTo(star.x, star.y + star.size * 0.38);
+        ctx.lineTo(star.x + star.size * 0.37, star.y + star.size * 0.35);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    function drawSummonCoins() {
+      const level = getCurrentLevel();
+      for (const squareCoin of level.summonCoins || []) {
+        if (squareCoin.collected) {
+          continue;
+        }
+        const pulse = 0.55 + (Math.sin(animationTick * 0.12) + 1) * 0.225;
+        ctx.save();
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle = "#ffd24d";
+        ctx.fillRect(squareCoin.x, squareCoin.y, squareCoin.size, squareCoin.size);
+        ctx.fillStyle = "#fff1a8";
+        ctx.fillRect(squareCoin.x + 5, squareCoin.y + 5, squareCoin.size - 10, squareCoin.size - 10);
+        ctx.fillStyle = "#c28a10";
+        ctx.fillRect(squareCoin.x + 10, squareCoin.y + 10, squareCoin.size - 20, squareCoin.size - 20);
+        ctx.restore();
+      }
+    }
+
+    function drawSpikes() {
+      const level = getCurrentLevel();
+      for (const spike of level.spikes) {
+        const spikeCount = 4;
+        const spikeWidth = spike.width / spikeCount;
+        ctx.fillStyle = "#8f97a3";
+        for (let i = 0; i < spikeCount; i++) {
+          const sx = spike.x + i * spikeWidth;
+          ctx.beginPath();
+          ctx.moveTo(sx, spike.y + spike.height);
+          ctx.lineTo(sx + spikeWidth / 2, spike.y);
+          ctx.lineTo(sx + spikeWidth, spike.y + spike.height);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+    }
+
+    function drawEnemies() {
+      const level = getCurrentLevel();
+      for (const enemy of level.enemies) {
+        if (enemy.defeated) {
+          continue;
+        }
+        ctx.fillStyle = "#8b6b4a";
+        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+        ctx.fillStyle = "#111111";
+        ctx.fillRect(enemy.x + 7, enemy.y + 9, 4, 4);
+        ctx.fillRect(enemy.x + 19, enemy.y + 9, 4, 4);
+      }
+    }
+
+    function drawAllies() {
+      const level = getCurrentLevel();
+      for (const ally of level.allies) {
+        ctx.fillStyle = "#42a85a";
+        ctx.fillRect(ally.x, ally.y, ally.width, ally.height);
+        ctx.fillStyle = "#111111";
+        ctx.fillRect(ally.x + 7, ally.y + 9, 4, 4);
+        ctx.fillRect(ally.x + 19, ally.y + 9, 4, 4);
+      }
+    }
+
+    function drawDragon() {
+      if (!dragon) {
+        return;
+      }
+      const x = dragon.x;
+      const y = dragon.y;
+      ctx.fillStyle = "#4fa85d";
+      ctx.fillRect(x + 20, y + 12, 54, 24);
+      ctx.fillRect(x + 74, y + 16, 24, 18);
+      ctx.fillRect(x + 10, y + 22, 14, 12);
+      ctx.fillStyle = "#77d68c";
+      ctx.beginPath();
+      ctx.moveTo(x + 26, y + 12);
+      ctx.lineTo(x + 48, y - 10);
+      ctx.lineTo(x + 66, y + 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x + 38, y + 12);
+      ctx.lineTo(x + 60, y - 8);
+      ctx.lineTo(x + 82, y + 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#2a6b35";
+      ctx.fillRect(x + 28, y + 36, 6, 16);
+      ctx.fillRect(x + 58, y + 36, 6, 16);
+      ctx.fillStyle = "#111111";
+      ctx.fillRect(x + 84, y + 20, 4, 4);
+    }
+
+    function drawDoor() {
+      const level = getCurrentLevel();
+      const open = score >= level.scoreGoal;
+      const door = level.door;
+      ctx.fillStyle = open ? "#3d7a4d" : "#6b4a2f";
+      ctx.fillRect(door.x, door.y, door.width, door.height);
+      ctx.fillStyle = open ? "#6cad77" : "#8d6643";
+      ctx.fillRect(door.x + 6, door.y + 8, door.width - 12, door.height - 8);
+      ctx.fillStyle = open ? "#d7ffe0" : "#fff0b3";
+      ctx.fillRect(door.x + 12, door.y + 18, door.width - 24, door.height - 34);
+      ctx.fillStyle = "#d8b36a";
+      ctx.beginPath();
+      ctx.arc(door.x + door.width - 11, door.y + door.height / 2, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawHeart(x, y, size, filled) {
+      ctx.fillStyle = filled ? "#e63946" : "rgba(255,255,255,0.35)";
+      ctx.fillRect(x + size * 0.2, y + size * 0.2, size * 0.6, size * 0.55);
+      ctx.fillRect(x, y + size * 0.35, size * 0.4, size * 0.35);
+      ctx.fillRect(x + size * 0.6, y + size * 0.35, size * 0.4, size * 0.35);
+      ctx.fillRect(x + size * 0.3, y + size * 0.7, size * 0.4, size * 0.2);
+    }
+
+    function drawHud() {
+      const level = getCurrentLevel();
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fillRect(18, 18, 220, 46);
+      ctx.strokeStyle = "#2f4858";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(18, 18, 220, 46);
+      ctx.fillStyle = "#1e2d3a";
+      ctx.font = "bold 22px Trebuchet MS";
+      ctx.fillText("分数: " + score, 30, 48);
+      for (let i = 0; i < maxLives; i++) {
+        drawHeart(250 + i * 26, 24, 20, i < lives);
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,0.88)";
+      ctx.fillRect(18, 74, 250, 74);
+      ctx.strokeStyle = "#2f4858";
+      ctx.strokeRect(18, 74, 250, 74);
+      ctx.fillStyle = "#243746";
+      ctx.font = "bold 18px Trebuchet MS";
+      ctx.fillText(level.name, 28, 96);
+      ctx.font = "16px Trebuchet MS";
+      ctx.fillText("通关需要分数: " + level.scoreGoal, 28, 118);
+      ctx.fillText("盟友数量: " + level.allies.length, 28, 138);
+
+      if (player.boosted) {
+        ctx.fillStyle = "rgba(255,244,200,0.94)";
+        ctx.fillRect(18, 150, 160, 34);
+        ctx.strokeStyle = "#7b5e22";
+        ctx.strokeRect(18, 150, 160, 34);
+        ctx.fillStyle = "#5f4717";
+        ctx.fillText("花朵强化: 已开启", 28, 172);
+      }
+    }
+
+    function drawDoorHint() {
+      const level = getCurrentLevel();
+      if (score >= level.scoreGoal) {
+        return;
+      }
+      const remain = level.scoreGoal - score;
+      ctx.fillStyle = "rgba(70,20,20,0.78)";
+      ctx.fillRect(canvas.width - 250, 18, 220, 46);
+      ctx.fillStyle = "#fff5e6";
+      ctx.font = "bold 18px Trebuchet MS";
+      ctx.fillText("还差 " + remain + " 分才能进门", canvas.width - 232, 47);
+    }
+
+    function drawOverlay(title, subtitle, color) {
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff7e6";
+      ctx.fillRect(canvas.width / 2 - 220, canvas.height / 2 - 78, 440, 156);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
+      ctx.strokeRect(canvas.width / 2 - 220, canvas.height / 2 - 78, 440, 156);
+      ctx.fillStyle = color;
+      ctx.font = "bold 36px Trebuchet MS";
+      ctx.textAlign = "center";
+      ctx.fillText(title, canvas.width / 2, canvas.height / 2 - 12);
+      ctx.fillStyle = "#333333";
+      ctx.font = "20px Trebuchet MS";
+      ctx.fillText(subtitle, canvas.width / 2, canvas.height / 2 + 28);
+      ctx.textAlign = "start";
+    }
+
+    function drawLevelSelect() {
+      const warpOptions = getWarpOptions();
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff7e6";
+      ctx.fillRect(canvas.width / 2 - 240, canvas.height / 2 - 110, 480, 220);
+      ctx.strokeStyle = "#2f4858";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(canvas.width / 2 - 240, canvas.height / 2 - 110, 480, 220);
+
+      ctx.fillStyle = "#243746";
+      ctx.textAlign = "center";
+      ctx.font = "bold 34px Trebuchet MS";
+      ctx.fillText("隐藏传送", canvas.width / 2, canvas.height / 2 - 45);
+      ctx.font = "bold 26px Trebuchet MS";
+      ctx.fillStyle = "#8b5e1a";
+      ctx.fillText(warpOptions[selectedWarpIndex].label, canvas.width / 2, canvas.height / 2 + 5);
+      ctx.font = "18px Trebuchet MS";
+      ctx.fillStyle = "#333333";
+      ctx.fillText("左右键切换，空格键进入", canvas.width / 2, canvas.height / 2 + 42);
+      ctx.fillText("最终门口会以满分状态传送", canvas.width / 2, canvas.height / 2 + 72);
+      ctx.fillText("按 R 可重新开始整局", canvas.width / 2, canvas.height / 2 + 100);
+      ctx.textAlign = "start";
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBackground();
+      ctx.save();
+      ctx.translate(-cameraX, 0);
+      drawCoins();
+      drawFlowers();
+      drawHealthBlocks();
+      drawStars();
+      drawSummonCoins();
+      drawEnemies();
+      drawAllies();
+      drawDragon();
+      drawSpikes();
+      drawDoor();
+      drawPlayer();
+      ctx.restore();
+
+      drawHud();
+      drawDoorHint();
+
+      if (gameOver) {
+        drawOverlay("游戏失败", "生命耗尽了，按 R 键重新开始", "#8b1e1e");
+      } else if (gameWon) {
+        drawOverlay("通关成功", "你完成了所有关卡，按 R 再玩一次", "#1f7a39");
+      } else if (levelSelectMode) {
+        drawLevelSelect();
+      }
+    }
+
+    function gameLoop() {
+      update();
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      if (levelSelectMode) {
+        if (event.code === "ArrowLeft") {
+          const warpOptions = getWarpOptions();
+          selectedWarpIndex = (selectedWarpIndex - 1 + warpOptions.length) % warpOptions.length;
+        } else if (event.code === "ArrowRight") {
+          const warpOptions = getWarpOptions();
+          selectedWarpIndex = (selectedWarpIndex + 1) % warpOptions.length;
+        } else if (event.code === "Space") {
+          event.preventDefault();
+          warpToSelection();
+        } else if (event.code === "KeyR") {
+          levelSelectMode = false;
+          resetGame();
+        }
+        return;
+      }
+
+      if (event.code === "ArrowLeft") {
+        keys.left = true;
+        registerSecretInput("left");
+      } else if (event.code === "ArrowRight") {
+        keys.right = true;
+        registerSecretInput("right");
+      } else if (event.code === "Space") {
+        event.preventDefault();
+        performJump();
+      } else if (event.code === "KeyR" && (gameOver || gameWon)) {
+        resetGame();
+      }
+    });
+
+    window.addEventListener("keyup", (event) => {
+      if (event.code === "ArrowLeft") {
+        keys.left = false;
+      } else if (event.code === "ArrowRight") {
+        keys.right = false;
+      }
+    });
+
+    function setTouchState(control, pressed) {
+      const button = touchButtons.find((item) => item.dataset.control === control);
+      if (button) {
+        button.classList.toggle("active", pressed);
+      }
+
+      if (control === "left") {
+        keys.left = pressed;
+        if (pressed) {
+          registerSecretInput("left");
+        }
+      } else if (control === "right") {
+        keys.right = pressed;
+        if (pressed) {
+          registerSecretInput("right");
+        }
+      } else if (control === "jump" && pressed) {
+        performJump();
+      }
+    }
+
+    for (const button of touchButtons) {
+      const control = button.dataset.control;
+      const start = (event) => {
+        event.preventDefault();
+        setTouchState(control, true);
+      };
+      const end = (event) => {
+        event.preventDefault();
+        setTouchState(control, false);
+      };
+      button.addEventListener("pointerdown", start);
+      button.addEventListener("pointerup", end);
+      button.addEventListener("pointerleave", end);
+      button.addEventListener("pointercancel", end);
+    }
+
+    resetGame();
+    gameLoop();
+  </script>
+</body>
+</html>

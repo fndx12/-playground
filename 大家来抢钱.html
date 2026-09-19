@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>大家来抢钱</title>
+  <style>
+    :root {
+      --ink: #243044;
+      --panel: rgba(255, 252, 240, 0.94);
+      --gold: #f7c948;
+      --blue: #2f80ed;
+      --green: #3dbb68;
+      --red: #e85555;
+      --shadow: 0 14px 34px rgba(30, 42, 56, 0.22);
+      --radius: 8px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #7ec9e8; color: var(--ink); }
+    button, input { font: inherit; }
+    button { cursor: pointer; touch-action: manipulation; }
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(255,255,255,.52), transparent 28%),
+        linear-gradient(140deg, #79d7f1, #91df8b 58%, #ffd66b);
+    }
+    .screen.active { display: flex; }
+    .home-card, .select-card, .win-card {
+      width: min(980px, 96vw);
+      max-height: min(92vh, 720px);
+      overflow: auto;
+      background: var(--panel);
+      border: 4px solid #fff3b0;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(18px, 3vw, 34px);
+      position: relative;
+    }
+    h1, h2, h3, p { margin: 0; }
+    .title {
+      font-size: clamp(42px, 7vw, 86px);
+      line-height: 1;
+      letter-spacing: 0;
+      color: #dd3d35;
+      text-shadow: 0 4px 0 #ffe26a, 0 7px 18px rgba(0,0,0,.18);
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .subtitle { text-align: center; font-size: clamp(15px, 2.3vw, 22px); color: #42526a; margin-bottom: 24px; }
+    .home-actions, .win-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .primary-btn, .ghost-btn, .danger-btn {
+      border: 0;
+      border-radius: var(--radius);
+      min-height: 48px;
+      padding: 0 24px;
+      font-weight: 850;
+      color: #223;
+      box-shadow: 0 5px 0 rgba(0,0,0,.18);
+      transition: transform .12s ease, filter .12s ease;
+    }
+    .primary-btn { background: linear-gradient(#ffe66b, #f3b92d); }
+    .ghost-btn { background: linear-gradient(#ffffff, #dfeaf6); }
+    .danger-btn { background: linear-gradient(#ff9d9d, #e65353); color: #fff; }
+    .primary-btn:active, .ghost-btn:active, .danger-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+    .primary-btn:disabled, .ghost-btn:disabled { opacity: .48; cursor: not-allowed; filter: grayscale(.35); }
+
+    .select-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .select-head h2 { font-size: clamp(24px, 3.6vw, 40px); color: #1c466f; }
+    .pick-note { font-weight: 800; color: #d14a42; }
+    .character-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .character-card {
+      border: 3px solid rgba(41,58,77,.16);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: #fffaf0;
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 10px;
+      align-items: center;
+      min-height: 126px;
+    }
+    .character-card.selected-p1 { border-color: #2f80ed; background: #eaf4ff; }
+    .character-card.selected-p2 { border-color: #e85555; background: #fff0f0; }
+    .character-card.disabled { opacity: .42; }
+    .avatar-preview { width: 72px; height: 72px; border-radius: 8px; background: #fff; border: 3px solid currentColor; }
+    .character-info h3 { font-size: 20px; margin-bottom: 4px; }
+    .character-info p { font-size: 13px; color: #4f5f73; line-height: 1.35; }
+    .select-actions { margin-top: 18px; display: flex; justify-content: flex-end; gap: 10px; }
+
+    #gameScreen { background: #8bd160; padding: 0; }
+    #gameCanvas { width: 100vw; height: 100vh; display: block; background: #8bd160; touch-action: none; }
+    .hud {
+      position: fixed;
+      left: max(10px, env(safe-area-inset-left));
+      top: max(10px, env(safe-area-inset-top));
+      min-width: min(320px, 50vw);
+      display: grid;
+      grid-template-columns: 68px 1fr;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 10px 8px 7px;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(255,231,72,.9));
+      border: 3px solid rgba(255,255,255,.94);
+      box-shadow: var(--shadow);
+      transition: transform .2s ease;
+      z-index: 4;
+    }
+    .hud.active-turn { animation: pulseHud .9s ease; }
+    .hud canvas { width: 60px; height: 60px; border-radius: 8px; background: #fff; border: 3px solid currentColor; }
+    .hud-name { font-weight: 950; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+    .turn-chip { font-size: 12px; background: #26384d; color: #fff; border-radius: 999px; padding: 2px 7px; }
+    .hud-stats { display: grid; grid-template-columns: repeat(3, auto); gap: 4px 12px; font-weight: 820; font-size: 14px; }
+    .hud-money { color: #9d1f2f; }
+    @keyframes pulseHud { 0%{transform:scale(1)} 45%{transform:scale(1.04)} 100%{transform:scale(1)} }
+
+    .top-tools {
+      position: fixed;
+      right: max(10px, env(safe-area-inset-right));
+      top: max(10px, env(safe-area-inset-top));
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      z-index: 4;
+    }
+    .tool-btn, .item-btn {
+      width: 42px;
+      height: 42px;
+      border: 2px solid rgba(255, 228, 107, .9);
+      background: rgba(255,255,255,.72);
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      font-size: 21px;
+      font-weight: 900;
+      box-shadow: 0 5px 0 rgba(0,0,0,.16);
+      position: relative;
+    }
+    .item-btn span {
+      position: absolute;
+      right: -5px;
+      bottom: -5px;
+      min-width: 20px;
+      height: 20px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      color: #fff;
+      background: #27384e;
+      border: 2px solid #fff;
+    }
+    .item-btn.empty { opacity: .38; }
+    .item-btn.armed {
+      border-color: #37d678;
+      background: rgba(219, 255, 224, .9);
+      box-shadow: 0 0 0 4px rgba(55, 214, 120, .22), 0 5px 0 rgba(0,0,0,.16);
+    }
+
+    .dice-panel {
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right));
+      bottom: max(12px, env(safe-area-inset-bottom));
+      width: min(300px, 42vw);
+      border-radius: var(--radius);
+      background: rgba(41, 30, 29, .87);
+      border: 4px solid #ffd640;
+      box-shadow: var(--shadow);
+      padding: 12px;
+      z-index: 4;
+      color: #fff;
+    }
+    .dice-panel.ready { animation: pulseDicePanel 1.2s ease infinite; }
+    .dice-panel.locked { opacity: .68; filter: saturate(.7); }
+    @keyframes pulseDicePanel { 0%,100%{transform:scale(1)} 50%{transform:scale(1.025)} }
+    .dice-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
+    .dice-choice {
+      width: 48px;
+      height: 42px;
+      border-radius: var(--radius);
+      border: 2px solid rgba(255,255,255,.6);
+      background: #fff;
+      color: #293544;
+      font-weight: 950;
+    }
+    .dice-choice.active { background: #ffe15c; border-color: #ff7136; }
+    .dice-stage { min-height: 68px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .die {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background: #f8f8f8;
+      border: 3px solid #d9d9d9;
+      box-shadow: inset -5px -5px 0 rgba(0,0,0,.08), 0 5px 10px rgba(0,0,0,.2);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      padding: 6px;
+      transform: rotate(-8deg);
+    }
+    .die.rolling { animation: rollDie .13s linear infinite; }
+    .pip { width: 9px; height: 9px; border-radius: 50%; background: #d82828; align-self: center; justify-self: center; opacity: 0; }
+    .pip.show { opacity: 1; }
+    @keyframes rollDie { from{transform:rotate(-8deg) scale(1)} to{transform:rotate(18deg) scale(1.07)} }
+    .go-btn {
+      width: 100%;
+      height: 58px;
+      border: 0;
+      border-radius: var(--radius);
+      font-size: 28px;
+      font-weight: 1000;
+      color: #7b2500;
+      background: radial-gradient(circle at 50% 40%, #fff6a2, #ffc928 62%, #f08d1e);
+      box-shadow: 0 6px 0 #8f4512;
+    }
+    .go-btn:disabled { filter: grayscale(.55); opacity: .7; }
+
+    .central-dice-layer {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      z-index: 9;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.18), transparent 38%);
+    }
+    .central-dice-layer.active { display: grid; }
+    .central-dice-box {
+      display: grid;
+      justify-items: center;
+      gap: 14px;
+      transform: translateY(-2vh);
+    }
+    .central-dice-row {
+      display: flex;
+      gap: clamp(16px, 3vw, 34px);
+      align-items: center;
+      justify-content: center;
+    }
+    .big-die {
+      width: clamp(92px, 12vw, 148px);
+      height: clamp(92px, 12vw, 148px);
+      border-radius: 14px;
+      background: linear-gradient(145deg, #ffffff, #d7dde2);
+      border: 5px solid #f6c824;
+      box-shadow: inset -14px -16px 0 rgba(0,0,0,.08), 0 24px 34px rgba(23,35,47,.38);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      padding: clamp(13px, 1.7vw, 22px);
+      transform: translateY(-90vh) rotate(-220deg) scale(.76);
+      opacity: 0;
+    }
+    .central-dice-layer.active .big-die {
+      animation: throwDie 1.35s cubic-bezier(.18,.86,.22,1.08) forwards, shakeDie .16s linear 1.35s 4;
+      animation-delay: var(--delay, 0ms), calc(1.1s + var(--delay, 0ms));
+    }
+    .central-dice-layer.done .big-die {
+      animation: dieLeave .42s ease forwards;
+      animation-delay: var(--delay, 0ms);
+    }
+    .big-die .pip {
+      width: clamp(15px, 2vw, 24px);
+      height: clamp(15px, 2vw, 24px);
+      background: radial-gradient(circle at 35% 32%, #ff6868, #be141f 75%);
+      box-shadow: inset -2px -3px 0 rgba(0,0,0,.16);
+    }
+    .dice-sum {
+      min-height: 46px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      background: rgba(38, 27, 21, .78);
+      color: #ffe05b;
+      border: 3px solid rgba(255,255,255,.75);
+      font-size: clamp(24px, 4vw, 46px);
+      font-weight: 1000;
+      text-shadow: 0 3px 0 rgba(0,0,0,.35);
+      opacity: 0;
+      transform: scale(.85);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .dice-sum.show { opacity: 1; transform: scale(1); }
+    @keyframes throwDie {
+      0% { transform: translate(var(--sx), var(--sy)) rotate(var(--sr)) scale(.72); opacity: 0; }
+      25% { opacity: 1; }
+      68% { transform: translate(calc(var(--tx) * .25), -42px) rotate(145deg) scale(1.07); opacity: 1; }
+      82% { transform: translate(var(--tx), 18px) rotate(225deg) scale(.96); }
+      100% { transform: translate(var(--tx), 0) rotate(var(--er)) scale(1); opacity: 1; }
+    }
+    @keyframes shakeDie {
+      0%,100% { margin-top: 0; }
+      50% { margin-top: -8px; }
+    }
+    @keyframes dieLeave {
+      to { opacity: 0; transform: translate(var(--tx), 40px) rotate(var(--er)) scale(.35); }
+    }
+
+    .modal-layer {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
+      background: rgba(20, 30, 42, .18);
+      padding: 16px;
+    }
+    .modal-layer.active { display: flex; }
+    .dialog {
+      width: min(560px, 94vw);
+      background: #fff9e6;
+      border: 4px solid #ffd33d;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      text-align: center;
+      animation: popIn .18s ease;
+    }
+    .dialog h2 { color: #c93d37; font-size: clamp(22px, 3.2vw, 34px); margin-bottom: 8px; }
+    .dialog p { line-height: 1.5; font-size: 17px; color: #3c4a5d; margin: 8px 0; }
+    .dialog-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+    .number-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 12px; }
+    @keyframes popIn { from{transform:scale(.88); opacity:0} to{transform:scale(1); opacity:1} }
+
+    .toast, .turn-banner, .speech-bubble, .coin-float {
+      position: fixed;
+      pointer-events: none;
+      z-index: 11;
+    }
+    .toast {
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%);
+      background: rgba(38, 52, 70, .94);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      font-weight: 800;
+      opacity: 0;
+      transition: opacity .2s ease, transform .2s ease;
+      max-width: 86vw;
+      text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+    .turn-banner {
+      left: 50%;
+      top: 45%;
+      transform: translate(-50%, -50%) scale(.85);
+      background: rgba(255, 232, 82, .95);
+      color: #243044;
+      border: 4px solid #fff;
+      border-radius: var(--radius);
+      padding: 16px 26px;
+      font-size: clamp(26px, 4.4vw, 52px);
+      font-weight: 1000;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .turn-banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    .speech-bubble {
+      max-width: min(320px, 48vw);
+      background: #fff;
+      border: 3px solid #27384e;
+      border-radius: 14px;
+      padding: 9px 12px;
+      font-weight: 850;
+      color: #26384d;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .speech-bubble.show { opacity: 1; transform: translateY(-8px); }
+    .coin-float {
+      font-size: 28px;
+      font-weight: 1000;
+      color: var(--float-color, #ffcf36);
+      text-shadow: 0 2px 0 #8d4a09, 0 5px 14px rgba(0,0,0,.35);
+      transition: left .32s ease, top .32s ease;
+      animation: coinRise 1s ease forwards;
+    }
+    @keyframes coinRise { from{opacity:1; transform:translateY(0) scale(.9)} to{opacity:0; transform:translateY(-64px) scale(1.25)} }
+
+    @media (max-width: 820px) {
+      .character-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .hud { min-width: 300px; grid-template-columns: 64px 1fr; padding: 7px; }
+      .hud canvas { width: 58px; height: 58px; }
+      .hud-stats { grid-template-columns: repeat(2, auto); font-size: 12px; gap: 3px 8px; }
+      .tool-btn, .item-btn { width: 42px; height: 42px; font-size: 21px; }
+      .dice-panel { width: min(260px, 45vw); padding: 10px; }
+      .die { width: 44px; height: 44px; padding: 5px; }
+      .pip { width: 8px; height: 8px; }
+      .go-btn { height: 50px; font-size: 24px; }
+    }
+    @media (max-height: 560px) {
+      .dice-panel { transform: scale(.86); transform-origin: right bottom; }
+      .hud { transform: scale(.86); transform-origin: left top; }
+      .top-tools { transform: scale(.86); transform-origin: right top; }
+    }
+  </style>
+</head>
+<body>
+  <section id="homeScreen" class="screen active">
+    <div class="home-card">
+      <h1 class="title">大家来抢钱</h1>
+      <p class="subtitle">双人同屏轮流游玩，买地、盖楼、收租，把迷你上海走成自己的版图。</p>
+      <div class="home-actions">
+        <button id="continueBtn" class="primary-btn" style="display:none">继续游戏</button>
+        <button id="newGameBtn" class="ghost-btn">新游戏</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="selectScreen" class="screen">
+    <div class="select-card">
+      <div class="select-head">
+        <h2>选择角色</h2>
+        <div id="pickNote" class="pick-note">玩家1请选择</div>
+      </div>
+      <div id="characterGrid" class="character-grid"></div>
+      <div class="select-actions">
+        <button id="backHomeBtn" class="ghost-btn">返回</button>
+        <button id="confirmPickBtn" class="primary-btn" disabled>开始游戏</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="gameScreen" class="screen">
+    <canvas id="gameCanvas"></canvas>
+    <div id="hud" class="hud">
+      <canvas id="hudAvatar" width="90" height="90"></canvas>
+      <div>
+        <div id="hudName" class="hud-name"></div>
+        <div class="hud-stats">
+          <div class="hud-money" id="hudMoney"></div>
+          <div id="hudProps"></div>
+          <div id="hudDay"></div>
+          <div id="hudItems"></div>
+        </div>
+      </div>
+    </div>
+    <div class="top-tools">
+      <button id="itemRemote" class="item-btn" title="遥控骰子">🎯<span>0</span></button>
+      <button id="itemStay" class="item-btn" title="停留卡">⏸<span>0</span></button>
+      <button id="itemReverse" class="item-btn" title="转向卡">↩<span>0</span></button>
+      <button id="itemRent" class="item-btn" title="免租卡">🛡<span>0</span></button>
+      <button id="saveBtn" class="tool-btn" title="保存">💾</button>
+      <button id="quitBtn" class="tool-btn" title="返回首页">⌂</button>
+    </div>
+    <div class="dice-panel">
+      <div class="dice-row">
+        <button class="dice-choice active" data-count="1">1骰</button>
+        <button class="dice-choice" data-count="2">2骰</button>
+        <button class="dice-choice" data-count="3">3骰</button>
+      </div>
+      <div id="diceStage" class="dice-stage"></div>
+      <button id="goBtn" class="go-btn">GO!</button>
+    </div>
+  </section>
+
+  <div id="centralDiceLayer" class="central-dice-layer"></div>
+
+  <section id="winScreen" class="screen">
+    <div class="win-card">
+      <h1 id="winTitle" class="title">获胜！</h1>
+      <p id="winStats" class="subtitle"></p>
+      <div class="win-actions">
+        <button id="playAgainBtn" class="primary-btn">再来一局</button>
+        <button id="returnSelectBtn" class="ghost-btn">返回角色选择</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="modalLayer" class="modal-layer"></div>
+  <div id="toast" class="toast"></div>
+  <div id="turnBanner" class="turn-banner"></div>
+  <div id="speechBubble" class="speech-bubble"></div>
+
+  <script>
+    "use strict";
+
+    const SAVE_KEY = "shanghai_monopoly_v2";
+    const START_MONEY = 10000;
+    const START_BONUS = 1000;
+    const MAX_ITEMS_TOTAL = 6;
+    const MAX_ITEM_KIND = 3;
+
+    const CHARACTERS = [
+      { id: "li", name: "李草根", color: "#2f80ed", skin: "#f6c789", hair: "#1f2733", accent: "#f6d04d", quote: "小富靠勤，大富靠命！", desc: "出身贫寒，立志出人头地。", face: "worker" },
+      { id: "qian", name: "钱莉莉", color: "#e8559b", skin: "#ffd4b8", hair: "#f3c23b", accent: "#4c88ff", quote: "你们这些穷鬼也配跟本小姐过招！", desc: "一切向钱看，正宗拜金女。", face: "lady" },
+      { id: "jiang", name: "蒋小红", color: "#37a348", skin: "#f3bd91", hair: "#222933", accent: "#e23737", quote: "一切反动派都是纸老虎！", desc: "根正苗红，为共产主义事业奋斗终身。", face: "cap" },
+      { id: "horse", name: "乖乖马", color: "#f4f1dc", skin: "#ffffff", hair: "#e7e7e7", accent: "#ff8f4b", quote: "救救野生动物咩！", desc: "莫名其妙的动物。", face: "horse" },
+      { id: "zombie", name: "赛德华", color: "#6c4a35", skin: "#82c45d", hair: "#172129", accent: "#ffe34d", quote: "长得帅运气都会好！", desc: "臭美而又自恋的僵尸。", face: "zombie" },
+      { id: "robot", name: "多特", color: "#e6b820", skin: "#dce7ef", hair: "#5a6a7a", accent: "#45d7ff", quote: "( -_-!)", desc: "思想单纯的小机器人。", face: "robot" }
+    ];
+
+    const ITEM_DEFS = {
+      remote: { name: "遥控骰子", icon: "🎯", desc: "本回合指定移动 1-6 格。" },
+      stay: { name: "停留卡", icon: "⏸", desc: "让对方下一回合无法移动。" },
+      reverse: { name: "转向卡", icon: "↩", desc: "让对方下一次移动方向反转。" },
+      rentFree: { name: "免租卡", icon: "🛡", desc: "下次踩到对方地产时自动免租。" }
+    };
+
+    const EVENT_POOL = [
+      { title: "小确幸", text: "路边抽奖中了 500 元。", apply: g => g.addCash(g.currentPlayer(), 500, "获得 500 元") },
+      { title: "项目分红", text: "临时项目结算，获得 1000 元。", apply: g => g.addCash(g.currentPlayer(), 1000, "获得 1000 元") },
+      { title: "维修账单", text: "家里水管坏了，损失 300 元。", apply: g => g.payCash(g.currentPlayer(), 300, "损失 300 元") },
+      { title: "购物冲动", text: "不小心买太多，损失 500 元。", apply: g => g.payCash(g.currentPlayer(), 500, "损失 500 元") },
+      { title: "便利小包", text: "获得一张随机道具卡。", apply: g => g.itemSystem.giveRandom(g.currentPlayer(), true) },
+      { title: "精神满格", text: "下一回合额外多滚 1 颗骰子。", apply: g => { g.currentPlayer().bonusDice = 1; g.showToast("下回合额外 +1 颗骰子"); } },
+      { title: "绕路", text: "施工改道，退后 3 格。", apply: async g => { await g.movePlayer(g.currentPlayer(), 3, -1, false); await g.handleLanding(true); } }
+    ];
+
+    function makeShanghaiTiles() {
+      const property = (name, tier, price) => ({ type: "property", name, tier, price, owner: null, level: 0 });
+      return [
+        { type: "start", name: "起点" },
+        property("人民广场", "high", 2800),
+        property("南京西路", "mid", 1800),
+        { type: "event", name: "新闻" },
+        property("静安寺", "high", 2600),
+        property("中山公园", "low", 1200),
+        { type: "item", name: "道具屋" },
+        property("虹桥", "mid", 1700),
+        property("七宝", "low", 1000),
+        { type: "event", name: "机会" },
+        property("徐家汇", "high", 2400),
+        property("田子坊", "mid", 1600),
+        property("淮海路", "high", 2500),
+        { type: "item", name: "便利店" },
+        property("新天地", "high", 3000),
+        property("豫园", "mid", 1900),
+        { type: "event", name: "传闻" },
+        property("外滩", "high", 3200),
+        property("北外滩", "mid", 2100),
+        property("四川北路", "low", 1100),
+        { type: "item", name: "百宝箱" },
+        property("大宁", "low", 1300),
+        property("五角场", "mid", 1800),
+        { type: "event", name: "新闻" },
+        property("陆家嘴", "high", 3400),
+        property("世纪大道", "mid", 2200),
+        { type: "item", name: "杂货铺" },
+        property("张江", "mid", 1700),
+        property("前滩", "mid", 2000),
+        { type: "event", name: "问号" },
+        property("滨江大道", "high", 2600),
+        { type: "item", name: "道具站" }
+      ];
+    }
+
+    const PATH_POINTS = [
+      [.42,.50],[.34,.49],[.26,.47],[.19,.42],[.12,.38],[.10,.28],[.07,.50],[.11,.62],
+      [.17,.75],[.25,.82],[.33,.76],[.39,.68],[.43,.60],[.49,.64],[.55,.58],[.60,.52],
+      [.61,.43],[.57,.35],[.52,.28],[.43,.25],[.35,.22],[.29,.16],[.50,.15],[.64,.23],
+      [.66,.39],[.74,.46],[.83,.53],[.91,.58],[.75,.80],[.64,.78],[.56,.68],[.49,.57]
+    ];
+
+    class SaveManager {
+      static hasSave() { return !!localStorage.getItem(SAVE_KEY); }
+      static save(game) { localStorage.setItem(SAVE_KEY, JSON.stringify(game.serialize())); }
+      static load() {
+        try { return JSON.parse(localStorage.getItem(SAVE_KEY)); }
+        catch (err) { return null; }
+      }
+      static clear() { localStorage.removeItem(SAVE_KEY); }
+    }
+
+    class Player {
+      constructor(index, characterId) {
+        this.index = index;
+        this.characterId = characterId;
+        this.cash = START_MONEY;
+        this.position = 0;
+        this.items = { remote: 0, stay: 0, reverse: 0, rentFree: 0 };
+        this.skipTurns = 0;
+        this.reverseNext = false;
+        this.direction = 1;
+        this.bonusDice = 0;
+        this.rentFreeActive = false;
+        this.bankrupt = false;
+      }
+      get character() { return CHARACTERS.find(c => c.id === this.characterId); }
+      propertyCount(tiles) { return tiles.filter(t => t.type === "property" && t.owner === this.index).length; }
+      topHouseCount(tiles) { return tiles.filter(t => t.type === "property" && t.owner === this.index && t.level === 3).length; }
+      itemTotal() { return Object.values(this.items).reduce((a, b) => a + b, 0); }
+    }
+
+    class Board {
+      constructor() {
+        this.name = "上海地图";
+        this.tiles = makeShanghaiTiles();
+        this.path = PATH_POINTS;
+      }
+      tileAt(i) { return this.tiles[((i % this.tiles.length) + this.tiles.length) % this.tiles.length]; }
+      pixelPoint(i, w, h) {
+        const [x, y] = this.path[((i % this.path.length) + this.path.length) % this.path.length];
+        return { x: x * w, y: y * h };
+      }
+      rent(tile) {
+        const base = Math.round(tile.price * 0.18);
+        return Math.round(base * [1, 1.8, 2.8, 4.4][tile.level]);
+      }
+      upgradeCost(tile) { return Math.round(tile.price * [0, .45, .65, .9][tile.level + 1]); }
+    }
+
+    class Dice {
+      constructor(stage) {
+        this.stage = stage;
+        this.count = 1;
+        this.values = [1];
+        this.render();
+      }
+      setCount(count) {
+        this.count = count;
+        this.values = Array.from({ length: count }, () => 1);
+        this.render();
+      }
+      render(rolling = false) {
+        this.stage.innerHTML = "";
+        this.values.forEach(v => {
+          const die = document.createElement("div");
+          die.className = "die" + (rolling ? " rolling" : "");
+          const visible = this.pips(v);
+          for (let i = 1; i <= 9; i++) {
+            const pip = document.createElement("div");
+            pip.className = "pip" + (visible.includes(i) ? " show" : "");
+            die.appendChild(pip);
+          }
+          this.stage.appendChild(die);
+        });
+      }
+      pips(v) {
+        return {
+          1: [5],
+          2: [1, 9],
+          3: [1, 5, 9],
+          4: [1, 3, 7, 9],
+          5: [1, 3, 5, 7, 9],
+          6: [1, 3, 4, 6, 7, 9]
+        }[v] || [5];
+      }
+      async roll(count, forcedTotal = null) {
+        this.count = count;
+        const loops = 10;
+        for (let i = 0; i < loops; i++) {
+          this.values = Array.from({ length: count }, () => rand(1, 6));
+          this.render(true);
+          await sleep(45);
+        }
+        if (forcedTotal) this.values = [forcedTotal];
+        else this.values = Array.from({ length: count }, () => rand(1, 6));
+        this.render(false);
+        await this.playCentral(this.values);
+        return this.values.reduce((a, b) => a + b, 0);
+      }
+      async playCentral(values) {
+        const layer = dom.centralDiceLayer;
+        layer.className = "central-dice-layer active";
+        layer.innerHTML = `<div class="central-dice-box"><div class="central-dice-row"></div><div class="dice-sum"></div></div>`;
+        const row = layer.querySelector(".central-dice-row");
+        const sum = layer.querySelector(".dice-sum");
+        values.forEach((v, i) => row.appendChild(this.bigDie(v, i, values.length)));
+        const endAt = performance.now() + 1250;
+        while (performance.now() < endAt) {
+          row.querySelectorAll(".big-die").forEach(die => {
+            const visible = this.pips(rand(1, 6));
+            die.querySelectorAll(".pip").forEach((pip, idx) => pip.classList.toggle("show", visible.includes(idx + 1)));
+          });
+          await sleep(70);
+        }
+        row.querySelectorAll(".big-die").forEach((die, i) => {
+          const visible = this.pips(values[i]);
+          die.querySelectorAll(".pip").forEach((pip, idx) => pip.classList.toggle("show", visible.includes(idx + 1)));
+        });
+        const total = values.reduce((a, b) => a + b, 0);
+        sum.textContent = values.length > 1 ? `${values.join(" + ")} = ${total}` : `${total}`;
+        sum.classList.add("show");
+        await sleep(650);
+        layer.classList.add("done");
+        await sleep(430);
+        layer.className = "central-dice-layer";
+        layer.innerHTML = "";
+      }
+      bigDie(value, index, total) {
+        const die = document.createElement("div");
+        die.className = "big-die";
+        const spread = (index - (total - 1) / 2) * 118;
+        const starts = [
+          ["-52vw", "-42vh", "-260deg"],
+          ["42vw", "-50vh", "230deg"],
+          ["-36vw", "48vh", "-190deg"]
+        ];
+        const s = starts[index % starts.length];
+        die.style.setProperty("--sx", s[0]);
+        die.style.setProperty("--sy", s[1]);
+        die.style.setProperty("--sr", s[2]);
+        die.style.setProperty("--tx", `${spread}px`);
+        die.style.setProperty("--er", `${[-10, 7, -5][index % 3]}deg`);
+        die.style.setProperty("--delay", `${index * 90}ms`);
+        const visible = this.pips(value);
+        for (let i = 1; i <= 9; i++) {
+          const pip = document.createElement("div");
+          pip.className = "pip" + (visible.includes(i) ? " show" : "");
+          die.appendChild(pip);
+        }
+        return die;
+      }
+    }
+
+    class ItemSystem {
+      constructor(game) { this.game = game; }
+      canReceive(player) { return player.itemTotal() < MAX_ITEMS_TOTAL; }
+      give(player, itemId, announce) {
+        if (!this.canReceive(player) || player.items[itemId] >= MAX_ITEM_KIND) {
+          if (announce) this.game.showToast("道具已满，没能装下新卡片");
+          return false;
+        }
+        player.items[itemId]++;
+        if (announce) this.game.showToast(`${player.character.name} 获得${ITEM_DEFS[itemId].name}`);
+        this.game.renderer.spawnSparkAtPlayer(player, ITEM_DEFS[itemId].icon);
+        return true;
+      }
+      giveRandom(player, announce) {
+        const ids = Object.keys(ITEM_DEFS).sort(() => Math.random() - .5);
+        for (const id of ids) if (this.give(player, id, announce)) return true;
+        return false;
+      }
+      async use(itemId) {
+        const player = this.game.currentPlayer();
+        if (this.game.phase !== "awaitRoll") return this.game.showToast("现在不能使用道具");
+        if (itemId === "rentFree" && player.rentFreeActive) return this.game.showToast("免租卡已经激活");
+        if (!player.items[itemId]) return this.game.showToast("这张道具卡没有库存");
+        if (itemId === "remote") {
+          const n = await this.game.promptNumber("遥控骰子", "选择本回合要移动的格数。");
+          if (!n) return;
+          player.items.remote--;
+          this.game.forcedRoll = n;
+          this.game.dice.setCount(1);
+          this.game.selectedDice = 1;
+          this.game.updateUi();
+          this.game.showToast(`已锁定 ${n} 点，点击 GO 出发`);
+          return;
+        }
+        const opponent = this.game.otherPlayer();
+        if (itemId === "stay") {
+          player.items.stay--;
+          opponent.skipTurns++;
+          await this.game.alert("停留卡", `${opponent.character.name} 下一回合无法移动。`);
+        } else if (itemId === "reverse") {
+          player.items.reverse--;
+          opponent.reverseNext = true;
+          await this.game.alert("转向卡", `${opponent.character.name} 下一次移动会反向。`);
+        } else if (itemId === "rentFree") {
+          player.items.rentFree--;
+          player.rentFreeActive = true;
+          await this.game.alert("免租卡", "已激活。你下一次踩到对方地产时会自动免租，并且只生效一次。");
+        }
+        this.game.updateUi();
+      }
+    }
+
+    class Renderer {
+      constructor(game, canvas) {
+        this.game = game;
+        this.canvas = canvas;
+        this.ctx = canvas.getContext("2d");
+        this.w = 1;
+        this.h = 1;
+        this.worldW = 1800;
+        this.worldH = 1180;
+        this.dpr = 1;
+        this.camera = { x: 0, y: 0, targetX: 0, targetY: 0, zoom: 1 };
+        this.moveAnim = null;
+        this.playerOffsets = [{ x: -26, y: -17 }, { x: 26, y: 17 }];
+        this.particles = [];
+        this.resize();
+      }
+      resize() {
+        this.dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+        this.w = window.innerWidth;
+        this.h = window.innerHeight;
+        this.worldW = Math.max(1650, this.w * 1.72);
+        this.worldH = Math.max(1080, this.h * 1.72);
+        this.canvas.width = Math.floor(this.w * this.dpr);
+        this.canvas.height = Math.floor(this.h * this.dpr);
+        this.canvas.style.width = this.w + "px";
+        this.canvas.style.height = this.h + "px";
+        this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+        this.snapCameraToCurrent();
+        this.draw();
+      }
+      snapCameraToCurrent() {
+        const p = this.game.players.length ? this.getPlayerWorldPoint(this.game.currentPlayer()) : { x: this.worldW / 2, y: this.worldH / 2 };
+        const c = this.clampedCamera(p.x - this.w * .48, p.y - this.h * .52);
+        this.camera.x = this.camera.targetX = c.x;
+        this.camera.y = this.camera.targetY = c.y;
+      }
+      updateCamera() {
+        const player = this.game.players.length ? this.game.currentPlayer() : null;
+        const focus = player ? this.getPlayerWorldPoint(player) : { x: this.worldW / 2, y: this.worldH / 2 };
+        const desired = this.clampedCamera(focus.x - this.w * .48, focus.y - this.h * .52);
+        this.camera.targetX = desired.x;
+        this.camera.targetY = desired.y;
+        this.camera.x += (this.camera.targetX - this.camera.x) * .10;
+        this.camera.y += (this.camera.targetY - this.camera.y) * .10;
+      }
+      clampedCamera(x, y) {
+        return {
+          x: clamp(x, 0, Math.max(0, this.worldW - this.w)),
+          y: clamp(y, 0, Math.max(0, this.worldH - this.h))
+        };
+      }
+      worldToScreen(p) { return { x: p.x - this.camera.x, y: p.y - this.camera.y }; }
+      screenToWorld(x, y) { return { x: x + this.camera.x, y: y + this.camera.y }; }
+      draw() {
+        const ctx = this.ctx;
+        this.updateCamera();
+        ctx.clearRect(0, 0, this.w, this.h);
+        ctx.save();
+        ctx.translate(-this.camera.x, -this.camera.y);
+        this.drawBackground(ctx);
+        this.drawDecor(ctx);
+        this.drawRoute(ctx);
+        this.drawTiles(ctx);
+        this.drawPlayers(ctx);
+        this.drawParticles(ctx);
+        ctx.restore();
+      }
+      drawBackground(ctx) {
+        const grd = ctx.createLinearGradient(0, 0, this.worldW, this.worldH);
+        grd.addColorStop(0, "#8ed56a");
+        grd.addColorStop(.55, "#9add6f");
+        grd.addColorStop(1, "#6bc184");
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, this.worldW, this.worldH);
+        ctx.strokeStyle = "rgba(255,255,255,.14)";
+        ctx.lineWidth = 3;
+        for (let x = -120; x < this.worldW + 140; x += 96) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 220, this.worldH); ctx.stroke();
+        }
+        ctx.strokeStyle = "rgba(52,110,45,.12)";
+        ctx.lineWidth = 1;
+        for (let y = 24; y < this.worldH; y += 36) {
+          ctx.beginPath();
+          for (let x = 0; x < this.worldW; x += 32) {
+            const yy = y + Math.sin(x / 28) * 3;
+            x ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy);
+          }
+          ctx.stroke();
+        }
+      }
+      drawDecor(ctx) {
+        const w = this.worldW, h = this.worldH;
+        ctx.save();
+        ctx.fillStyle = "#38abd4";
+        ctx.beginPath();
+        ctx.moveTo(.42*w, 0);
+        ctx.bezierCurveTo(.37*w,.18*h,.56*w,.28*h,.48*w,.45*h);
+        ctx.bezierCurveTo(.39*w,.61*h,.52*w,.78*h,.47*w,h);
+        ctx.lineTo(.60*w,h);
+        ctx.bezierCurveTo(.65*w,.76*h,.54*w,.63*h,.62*w,.46*h);
+        ctx.bezierCurveTo(.70*w,.29*h,.50*w,.19*h,.56*w,0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#f6d277";
+        ctx.lineWidth = 12;
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,.45)";
+        ctx.lineWidth = 4;
+        for (let y = 20; y < h; y += 52) {
+          ctx.beginPath();
+          ctx.moveTo(.45*w, y);
+          ctx.bezierCurveTo(.51*w, y+16, .54*w, y-18, .60*w, y+8);
+          ctx.stroke();
+        }
+        this.drawPark(ctx, .25*w, .52*h, .18*w, .2*h);
+        this.drawLujiazui(ctx, .61*w, .15*h);
+        this.drawBund(ctx, .25*w, .24*h);
+        this.drawPeopleSquare(ctx, .34*w, .58*h);
+        this.drawNeighborhood(ctx, .76*w, .40*h, 5, 4);
+        this.drawNeighborhood(ctx, .70*w, .68*h, 4, 3);
+        this.drawTrees(ctx);
+        ctx.restore();
+      }
+      drawPark(ctx, x, y, w, h) {
+        ctx.fillStyle = "#62c856";
+        roundRect(ctx, x, y, w, h, 10); ctx.fill();
+        ctx.fillStyle = "#62c9e8";
+        ctx.beginPath(); ctx.ellipse(x+w*.42, y+h*.55, w*.24, h*.22, -.2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x+w*.68, y+h*.38, w*.18, h*.18, .2, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#257f45";
+        for (let i = 0; i < 18; i++) this.tree(ctx, x + 12 + (i*31)%w, y + 12 + ((i*47)%h), 10);
+      }
+      drawLujiazui(ctx, x, y) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = "rgba(0,0,0,.14)";
+        ctx.beginPath(); ctx.ellipse(25, 130, 115, 24, 0, 0, Math.PI*2); ctx.fill();
+        this.tower(ctx, -70, 55, 34, 94, "#87e4ef", "#24465f");
+        this.tower(ctx, -25, 25, 38, 126, "#b5f0ff", "#31536d");
+        this.tower(ctx, 25, 5, 36, 148, "#d4f8ff", "#3d6885");
+        ctx.fillStyle = "#f05252";
+        ctx.beginPath(); ctx.arc(84, 45, 18, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#f7d548";
+        ctx.beginPath(); ctx.arc(84, 95, 26, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "#7b3454"; ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(84, 14); ctx.lineTo(84, 148); ctx.stroke();
+        ctx.restore();
+      }
+      drawPeopleSquare(ctx, x, y) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = "#d8d1c2";
+        roundRect(ctx, -88, -64, 176, 128, 8); ctx.fill();
+        ctx.strokeStyle = "#b13b35"; ctx.lineWidth = 7;
+        roundRect(ctx, -72, -48, 144, 96, 4); ctx.stroke();
+        ctx.fillStyle = "#ffd03f";
+        ctx.beginPath(); ctx.moveTo(-48, -8); ctx.lineTo(0, -42); ctx.lineTo(48, -8); ctx.lineTo(48, 42); ctx.lineTo(-48, 42); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#c83a2e";
+        ctx.fillRect(-60, 42, 120, 14);
+        ctx.restore();
+      }
+      tower(ctx, x, y, w, h, color, edge) {
+        ctx.fillStyle = color; ctx.strokeStyle = edge; ctx.lineWidth = 3;
+        roundRect(ctx, x, y, w, h, 5); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = "rgba(40,80,100,.45)";
+        for (let yy = y + 14; yy < y + h - 6; yy += 16) {
+          ctx.beginPath(); ctx.moveTo(x+5, yy); ctx.lineTo(x+w-5, yy); ctx.stroke();
+        }
+      }
+      drawBund(ctx, x, y) {
+        for (let i = 0; i < 6; i++) {
+          const bx = x + i * 42, bh = 60 + (i % 3) * 20;
+          ctx.fillStyle = ["#eed7a3", "#d6b98a", "#f0c99a"][i % 3];
+          ctx.strokeStyle = "#7c654e"; ctx.lineWidth = 3;
+          roundRect(ctx, bx, y + 100 - bh, 34, bh, 3); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = "#76543c";
+          ctx.beginPath(); ctx.moveTo(bx-4, y+100-bh); ctx.lineTo(bx+17, y+82-bh); ctx.lineTo(bx+38, y+100-bh); ctx.fill();
+        }
+      }
+      drawNeighborhood(ctx, x, y, cols, rows) {
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+          const bx = x + c * 44, by = y + r * 42;
+          this.houseShape(ctx, bx, by, 32, 28, "#7fb7b7", "#6b4d42");
+        }
+      }
+      drawTrees(ctx) {
+        for (let i = 0; i < 34; i++) {
+          const x = (i * 173 % Math.floor(this.worldW + 100)) - 40;
+          const y = (i * 97 % Math.floor(this.worldH + 80)) - 20;
+          if (x > this.worldW*.40 && x < this.worldW*.62) continue;
+          this.tree(ctx, x, y, 12 + (i % 3) * 3);
+        }
+      }
+      tree(ctx, x, y, s) {
+        ctx.fillStyle = "#754a26"; ctx.fillRect(x - s*.12, y + s*.55, s*.24, s*.42);
+        ctx.fillStyle = "#257f34";
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - s*.7, y + s*.68); ctx.lineTo(x + s*.7, y + s*.68); ctx.fill();
+        ctx.fillStyle = "#1f6f2e";
+        ctx.beginPath(); ctx.moveTo(x, y + s*.35); ctx.lineTo(x - s*.62, y + s*1.0); ctx.lineTo(x + s*.62, y + s*1.0); ctx.fill();
+      }
+      drawRoute(ctx) {
+        const pts = this.game.board.path.map((_, i) => this.game.board.pixelPoint(i, this.worldW, this.worldH));
+        ctx.save();
+        ctx.strokeStyle = "#4d545b";
+        ctx.lineWidth = 132;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+        ctx.closePath();
+        ctx.stroke();
+        ctx.strokeStyle = "#80878d";
+        ctx.lineWidth = 116;
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,.96)";
+        ctx.lineWidth = 5;
+        ctx.setLineDash([38, 30]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+      drawTiles(ctx) {
+        const size = this.tileSize();
+        this.game.board.tiles.forEach((tile, i) => {
+          const p = this.game.board.pixelPoint(i, this.worldW, this.worldH);
+          const pulse = this.game.tilePulse && this.game.tilePulse.index === i ? this.game.tilePulse.value : 0;
+          this.drawTile(ctx, tile, i, p.x, p.y, size * (1 + pulse * .13), pulse);
+        });
+      }
+      tileSize() { return Math.max(92, Math.min(124, Math.min(this.w, this.h) * .145)); }
+      drawTile(ctx, tile, i, x, y, size, pulse) {
+        const half = size / 2;
+        const owner = tile.owner != null ? this.game.players[tile.owner] : null;
+        const ownerColor = owner ? owner.character.color : null;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = "rgba(0,0,0,.22)";
+        roundRect(ctx, -half + 7, -half + 10, size, size, 14);
+        ctx.fill();
+        if (pulse) {
+          ctx.shadowColor = ownerColor || "#ffe15a";
+          ctx.shadowBlur = 28 * pulse;
+        }
+        ctx.fillStyle = tile.type === "property" ? (ownerColor ? tint(ownerColor, .78) : "#fff4a8") :
+          tile.type === "start" ? "#ffe451" : tile.type === "event" ? "#293a80" : "#a8ee74";
+        ctx.strokeStyle = ownerColor || "#ffffff";
+        ctx.lineWidth = ownerColor ? 9 : 6;
+        roundRect(ctx, -half, -half, size, size, 14);
+        ctx.fill(); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(78,67,42,.28)";
+        ctx.lineWidth = 2;
+        for (let k = -half + 12; k < half - 8; k += 16) {
+          ctx.beginPath(); ctx.moveTo(k, -half + 10); ctx.lineTo(k + 22, half - 10); ctx.stroke();
+        }
+        ctx.fillStyle = "rgba(255,255,255,.55)";
+        roundRect(ctx, -half+10, -half+10, size-20, size-20, 10); ctx.fill();
+        if (tile.type === "start") {
+          ctx.fillStyle = "#d74535"; ctx.font = `900 ${size*.28}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText("START", 0, -2);
+          ctx.fillStyle = "#e6a510";
+          ctx.beginPath(); ctx.moveTo(-14, 17); ctx.lineTo(18, 17); ctx.lineTo(6, 5); ctx.lineTo(28, 5); ctx.lineTo(28, 28); ctx.lineTo(-14, 28); ctx.fill();
+        } else if (tile.type === "event") {
+          ctx.fillStyle = "#ffdf49"; ctx.font = `1000 ${size*.66}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText("?", 0, 2);
+        } else if (tile.type === "item") {
+          ctx.fillStyle = "#f5bd26"; ctx.strokeStyle = "#8d5f11"; ctx.lineWidth = 3;
+          roundRect(ctx, -size*.25, -size*.14, size*.5, size*.38, 6); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = "#fff3a0"; ctx.fillRect(-size*.16, -size*.07, size*.32, size*.08);
+        } else {
+          this.drawPropertyIcon(ctx, tile, size, ownerColor);
+        }
+        ctx.fillStyle = "#25364b";
+        ctx.font = `900 ${Math.max(18, size*.20)}px sans-serif`;
+        ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+        ctx.fillText(tile.name, 0, half - 4, size - 8);
+        ctx.restore();
+      }
+      drawPropertyIcon(ctx, tile, size, color) {
+        const c = color || "#f2bf37";
+        if (tile.level <= 0) {
+          ctx.fillStyle = c; ctx.strokeStyle = "#7a6332"; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(0, -size*.12, size*.18, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = "#795f3e"; ctx.fillRect(-size*.17, size*.04, size*.34, size*.15);
+          ctx.fillStyle = "rgba(255,255,255,.5)";
+          ctx.beginPath(); ctx.arc(-size*.06, -size*.18, size*.045, 0, Math.PI*2); ctx.fill();
+          return;
+        }
+        const scale = [.9, 1.15, 1.42][tile.level - 1];
+        const w = size * .40 * scale, h = size * .34 * scale;
+        this.houseShape(ctx, -w/2, -h/2 - 3, w, h, tint(c, .62), tile.level === 3 ? "#cf3b3b" : "#73523d");
+        if (tile.level >= 2) this.houseShape(ctx, -w*.64, -h*.16, w*.55, h*.72, tint(c, .70), "#5f493c");
+        if (tile.level === 3) {
+          this.tower(ctx, w*.10, -h*1.05, w*.34, h*1.34, tint(c, .45), "#4b6476");
+        }
+      }
+      houseShape(ctx, x, y, w, h, body, roof) {
+        ctx.fillStyle = body; ctx.strokeStyle = "rgba(43,56,70,.65)"; ctx.lineWidth = 2;
+        roundRect(ctx, x, y + h*.28, w, h*.72, 3); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = roof;
+        ctx.beginPath(); ctx.moveTo(x-3, y+h*.32); ctx.lineTo(x+w/2, y); ctx.lineTo(x+w+3, y+h*.32); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,.75)";
+        ctx.fillRect(x+w*.18, y+h*.47, w*.18, h*.16);
+        ctx.fillRect(x+w*.62, y+h*.47, w*.18, h*.16);
+      }
+      drawPlayers(ctx) {
+        this.game.players.forEach((player, i) => {
+          const p = this.getPlayerWorldPoint(player);
+          const off = this.playerOffsets[i];
+          const active = this.game.currentIndex === i && this.game.screen === "game";
+          const moving = this.moveAnim && this.moveAnim.playerIndex === player.index;
+          const walk = moving ? this.moveAnim.progress : 0;
+          const facing = moving ? this.moveAnim.facing : 1;
+          drawMapCharacter(ctx, player.character, p.x + off.x, p.y + off.y, active ? 1.08 : .96, active, walk, facing);
+        });
+      }
+      getPlayerWorldPoint(player) {
+        if (this.moveAnim && this.moveAnim.playerIndex === player.index) {
+          const a = this.game.board.pixelPoint(this.moveAnim.from, this.worldW, this.worldH);
+          const b = this.game.board.pixelPoint(this.moveAnim.to, this.worldW, this.worldH);
+          const t = easeInOut(this.moveAnim.progress);
+          return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t - Math.sin(t * Math.PI) * 24 };
+        }
+        return this.game.board.pixelPoint(player.position, this.worldW, this.worldH);
+      }
+      spawnSparkAtPlayer(player, text) {
+        const p = this.worldToScreen(this.getPlayerWorldPoint(player));
+        const el = document.createElement("div");
+        el.className = "coin-float";
+        el.textContent = text;
+        el.style.left = `${p.x}px`;
+        el.style.top = `${p.y - 42}px`;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1050);
+      }
+      drawParticles(ctx) {
+        const now = performance.now();
+        this.particles = this.particles.filter(p => now - p.t < p.life);
+        for (const p of this.particles) {
+          const k = (now - p.t) / p.life;
+          ctx.globalAlpha = 1 - k;
+          ctx.fillStyle = p.color;
+          ctx.beginPath(); ctx.arc(p.x, p.y - k * 50, p.r * (1 + k), 0, Math.PI*2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+
+    class Game {
+      constructor() {
+        this.board = new Board();
+        this.players = [];
+        this.currentIndex = 0;
+        this.day = 1;
+        this.turn = 1;
+        this.selectedDice = 1;
+        this.phase = "idle";
+        this.screen = "home";
+        this.forcedRoll = null;
+        this.startPaidThisMove = false;
+        this.tilePulse = null;
+        this.boardAnim = 0;
+        this.renderer = new Renderer(this, dom.canvas);
+        this.dice = new Dice(dom.diceStage);
+        this.itemSystem = new ItemSystem(this);
+      }
+      newGame(ids) {
+        this.board = new Board();
+        this.players = [new Player(0, ids[0]), new Player(1, ids[1])];
+        this.currentIndex = 0;
+        this.day = 1;
+        this.turn = 1;
+        this.selectedDice = 1;
+        this.forcedRoll = null;
+        this.phase = "awaitRoll";
+        this.screen = "game";
+        this.dice.setCount(1);
+        switchScreen("game");
+        this.startTurn(true);
+      }
+      load(data) {
+        this.board = new Board();
+        if (data.tiles) {
+          data.tiles.forEach((src, i) => {
+            if (this.board.tiles[i] && this.board.tiles[i].type === "property") {
+              this.board.tiles[i].owner = src.owner;
+              this.board.tiles[i].level = src.level || 0;
+            }
+          });
+        }
+        this.players = data.players.map((p, i) => Object.assign(new Player(i, p.characterId), p));
+        this.players.forEach(player => {
+          player.items = Object.assign({ remote: 0, stay: 0, reverse: 0, rentFree: 0 }, player.items || {});
+          player.bonusDice = player.bonusDice || 0;
+          player.rentFreeActive = !!player.rentFreeActive;
+        });
+        this.currentIndex = data.currentIndex || 0;
+        this.day = data.day || 1;
+        this.turn = data.turn || 1;
+        this.selectedDice = data.selectedDice || 1;
+        this.phase = "awaitRoll";
+        this.screen = "game";
+        this.dice.setCount(this.selectedDice);
+        switchScreen("game");
+        this.startTurn(true);
+      }
+      serialize() {
+        return {
+          version: 1,
+          day: this.day,
+          turn: this.turn,
+          currentIndex: this.currentIndex,
+          selectedDice: this.selectedDice,
+          players: this.players.map(p => ({
+            index: p.index,
+            characterId: p.characterId,
+            cash: p.cash,
+            position: p.position,
+            items: p.items,
+            skipTurns: p.skipTurns,
+            reverseNext: p.reverseNext,
+            direction: p.direction,
+            bonusDice: p.bonusDice,
+            rentFreeActive: p.rentFreeActive,
+            bankrupt: p.bankrupt
+          })),
+          tiles: this.board.tiles.map(t => ({ owner: t.owner, level: t.level || 0 }))
+        };
+      }
+      currentPlayer() { return this.players[this.currentIndex]; }
+      otherPlayer() { return this.players[1 - this.currentIndex]; }
+      async startTurn(show) {
+        this.phase = "awaitRoll";
+        this.forcedRoll = null;
+        const player = this.currentPlayer();
+        this.selectedDice = Math.min(this.selectedDice, 3);
+        this.updateUi();
+        this.renderer.draw();
+        if (show) await this.turnBanner(`轮到 ${player.character.name}`);
+        if (player.skipTurns > 0) {
+          player.skipTurns--;
+          await this.alert("本回合停留", `${player.character.name} 被停留卡影响，跳过移动。`);
+          await this.endTurn();
+        }
+      }
+      async rollAndMove() {
+        if (this.phase !== "awaitRoll") return;
+        this.phase = "rolling";
+        this.updateUi();
+        const player = this.currentPlayer();
+        const count = this.forcedRoll ? 1 : this.selectedDice + player.bonusDice;
+        const steps = await this.dice.roll(count, this.forcedRoll);
+        if (!this.forcedRoll && player.bonusDice > 0) {
+          player.bonusDice = 0;
+          this.showToast("额外骰子已使用");
+        }
+        this.forcedRoll = null;
+        if (steps >= 10 || Math.random() < .22) this.say(player);
+        let dir = player.direction;
+        if (player.reverseNext) {
+          dir *= -1;
+          player.reverseNext = false;
+          this.showToast("方向反转一次");
+        }
+        await this.movePlayer(player, steps, dir, true);
+        await this.handleLanding(false);
+      }
+      async movePlayer(player, steps, dir, giveStartBonus) {
+        this.phase = "moving";
+        if (giveStartBonus) this.startPaidThisMove = false;
+        const len = this.board.tiles.length;
+        for (let i = 0; i < steps; i++) {
+          const old = player.position;
+          const next = (player.position + dir + len) % len;
+          await this.animateStep(player, old, next, 205);
+          player.position = next;
+          if (giveStartBonus && dir > 0 && old > player.position) {
+            this.addCash(player, START_BONUS, "经过起点 +1000");
+            this.startPaidThisMove = true;
+            this.renderer.spawnSparkAtPlayer(player, "+1000");
+          }
+          if (giveStartBonus && dir < 0 && player.position === 0) {
+            this.addCash(player, START_BONUS, "停到起点 +1000");
+            this.startPaidThisMove = true;
+            this.renderer.spawnSparkAtPlayer(player, "+1000");
+          }
+        }
+      }
+      async animateStep(player, from, to, ms) {
+        const start = performance.now();
+        while (performance.now() - start < ms) {
+          const progress = Math.min(1, (performance.now() - start) / ms);
+          const fromPoint = this.board.pixelPoint(from, this.renderer.worldW, this.renderer.worldH);
+          const toPoint = this.board.pixelPoint(to, this.renderer.worldW, this.renderer.worldH);
+          const facing = toPoint.x >= fromPoint.x ? 1 : -1;
+          this.renderer.moveAnim = { playerIndex: player.index, from, to, progress, facing };
+          this.renderer.draw();
+          await nextFrame();
+        }
+        this.renderer.moveAnim = null;
+        this.renderer.draw();
+      }
+      async bumpPlayer(player, ms) {
+        const start = performance.now();
+        while (performance.now() - start < ms) {
+          this.renderer.draw();
+          await nextFrame();
+        }
+      }
+      async handleLanding(nested) {
+        const player = this.currentPlayer();
+        const tile = this.board.tileAt(player.position);
+        if (tile.type === "start") {
+          if (!this.startPaidThisMove) {
+            this.addCash(player, START_BONUS, "起点奖励 +1000");
+            this.renderer.spawnSparkAtPlayer(player, "+1000");
+          }
+          await this.alert("起点奖励", `${player.character.name} 来到起点，获得 ${START_BONUS} 元。`);
+          this.startPaidThisMove = false;
+        } else if (tile.type === "property") {
+          await this.handleProperty(player, tile, player.position);
+        } else if (tile.type === "item") {
+          this.itemSystem.giveRandom(player, true);
+          await this.alert("获得道具", `${player.character.name} 在${tile.name}抽到一张道具卡。`);
+        } else if (tile.type === "event") {
+          await this.handleEvent();
+        }
+        this.updateUi();
+        this.renderer.draw();
+        if (this.checkBankrupt()) return;
+        if (!nested) await this.endTurn();
+      }
+      async handleProperty(player, tile, tileIndex) {
+        if (tile.owner == null) {
+          const ok = await this.confirm("购买地产", `${player.character.name} 来到 ${tile.name}。购买价格 ${tile.price} 元。`, "购买", "不买", player.cash >= tile.price);
+          if (ok) {
+            this.payCash(player, tile.price, `购买 ${tile.name}`);
+            tile.owner = player.index;
+            tile.level = 0;
+            await this.pulseTile(tileIndex);
+            if (Math.random() < .55) this.say(player);
+          }
+          return;
+        }
+        if (tile.owner === player.index) {
+          if (tile.level >= 3) {
+            await this.alert("自家地产", `${tile.name} 已经是最高等级建筑。`);
+            return;
+          }
+          const cost = this.board.upgradeCost(tile);
+          const ok = await this.confirm("加盖房屋", `${tile.name} 当前等级 ${tile.level}，升级费用 ${cost} 元。`, "升级", "暂不升级", player.cash >= cost);
+          if (ok) {
+            this.payCash(player, cost, `升级 ${tile.name}`);
+            tile.level++;
+            await this.pulseTile(tileIndex);
+            if (Math.random() < .62) this.say(player);
+          }
+          return;
+        }
+        const owner = this.players[tile.owner];
+        const rent = this.board.rent(tile);
+        if (player.rentFreeActive) {
+          player.rentFreeActive = false;
+          await this.alert("免租卡生效", `${player.character.name} 来到 ${tile.name}，自动免除 ${rent} 元租金。`);
+          this.updateUi();
+          return;
+        }
+        await this.alert("支付租金", `${player.character.name} 来到 ${tile.name}，需要向 ${owner.character.name} 支付 ${rent} 元租金！`);
+        this.payCash(player, rent, `支付租金 ${rent}`);
+        this.addCash(owner, rent, `收到租金 ${rent}`);
+        this.coinFloatBetween(player, owner, rent);
+        if (Math.random() < .45) this.say(owner);
+      }
+      async handleEvent() {
+        const ev = EVENT_POOL[rand(0, EVENT_POOL.length - 1)];
+        await this.alert(ev.title, ev.text);
+        await ev.apply(this);
+      }
+      async pulseTile(index) {
+        for (let i = 0; i < 18; i++) {
+          this.tilePulse = { index, value: Math.sin(i / 17 * Math.PI) };
+          this.renderer.draw();
+          await sleep(24);
+        }
+        this.tilePulse = null;
+        this.renderer.draw();
+      }
+      payCash(player, amount) { player.cash -= amount; this.updateUi(); }
+      addCash(player, amount) { player.cash += amount; this.updateUi(); }
+      checkBankrupt() {
+        const loser = this.players.find(p => p.cash < 0);
+        if (!loser) return false;
+        loser.bankrupt = true;
+        const winner = this.players[1 - loser.index];
+        SaveManager.clear();
+        this.showWinner(winner);
+        return true;
+      }
+      async endTurn() {
+        this.phase = "ending";
+        SaveManager.save(this);
+        await this.turnBanner("回合结束");
+        this.currentIndex = 1 - this.currentIndex;
+        if (this.currentIndex === 0) this.day++;
+        this.turn++;
+        await this.startTurn(true);
+      }
+      showWinner(winner) {
+        this.phase = "gameover";
+        this.screen = "win";
+        const props = winner.propertyCount(this.board.tiles);
+        const top = winner.topHouseCount(this.board.tiles);
+        dom.winTitle.textContent = `${winner.character.name}获胜！`;
+        dom.winStats.textContent = `剩余现金 ${winner.cash} 元，拥有地产 ${props} 块，最高等级房屋 ${top} 栋，本局经过 ${this.turn} 回合。`;
+        switchScreen("win");
+        this.say(winner, true);
+      }
+      updateUi() {
+        const p = this.currentPlayer();
+        if (!p) return;
+        dom.hud.style.color = p.character.color;
+        drawAvatar(dom.hudAvatar.getContext("2d"), p.character, 90);
+        dom.hudName.innerHTML = `${p.character.name}<span class="turn-chip">玩家${p.index + 1}</span>`;
+        dom.hudMoney.textContent = `现金 ${p.cash}`;
+        dom.hudProps.textContent = `地产 ${p.propertyCount(this.board.tiles)}`;
+        dom.hudDay.textContent = `Day ${this.day}`;
+        dom.hudItems.textContent = `回合 ${this.turn}${p.bonusDice ? " +1骰" : ""}`;
+        dom.hud.classList.toggle("active-turn", this.phase === "awaitRoll");
+        const maxDice = 3;
+        dom.diceChoices.forEach(btn => {
+          const count = Number(btn.dataset.count);
+          btn.disabled = count > maxDice || !!this.forcedRoll;
+          btn.classList.toggle("active", count === this.selectedDice);
+        });
+        dom.goBtn.disabled = this.phase !== "awaitRoll";
+        document.querySelector(".dice-panel").classList.toggle("ready", this.phase === "awaitRoll");
+        document.querySelector(".dice-panel").classList.toggle("locked", this.phase !== "awaitRoll");
+        Object.keys(ITEM_DEFS).forEach(id => {
+          const btn = dom.itemButtons[id];
+          const count = p.items[id] || 0;
+          btn.querySelector("span").textContent = count;
+          btn.classList.toggle("empty", count <= 0);
+          btn.classList.toggle("armed", id === "rentFree" && p.rentFreeActive);
+          if (id === "rentFree") btn.title = p.rentFreeActive ? "免租卡已激活" : "免租卡";
+        });
+      }
+      coinFloatBetween(from, to, amount) {
+        const a = this.renderer.worldToScreen(this.renderer.getPlayerWorldPoint(from));
+        const b = this.renderer.worldToScreen(this.renderer.getPlayerWorldPoint(to));
+        const el = document.createElement("div");
+        el.className = "coin-float";
+        el.textContent = `-${amount}`;
+        el.style.setProperty("--float-color", "#ff4b4b");
+        el.style.left = `${a.x}px`;
+        el.style.top = `${a.y - 48}px`;
+        document.body.appendChild(el);
+        setTimeout(() => {
+          el.textContent = `+${amount}`;
+          el.style.setProperty("--float-color", "#39d66f");
+          el.style.left = `${b.x}px`;
+          el.style.top = `${b.y - 48}px`;
+        }, 380);
+        setTimeout(() => el.remove(), 1200);
+      }
+      say(player, force) {
+        if (!force && Math.random() > .45) return;
+        const p = this.renderer.worldToScreen(this.renderer.getPlayerWorldPoint(player));
+        dom.speech.textContent = player.character.quote;
+        dom.speech.style.left = `${Math.min(this.renderer.w - 340, Math.max(16, p.x + 24))}px`;
+        dom.speech.style.top = `${Math.min(this.renderer.h - 120, Math.max(80, p.y - 86))}px`;
+        dom.speech.classList.add("show");
+        clearTimeout(this.speechTimer);
+        this.speechTimer = setTimeout(() => dom.speech.classList.remove("show"), 2800);
+      }
+      showToast(text) {
+        dom.toast.textContent = text;
+        dom.toast.classList.add("show");
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => dom.toast.classList.remove("show"), 1600);
+      }
+      async turnBanner(text) {
+        dom.turnBanner.textContent = text;
+        dom.turnBanner.classList.add("show");
+        await sleep(820);
+        dom.turnBanner.classList.remove("show");
+        await sleep(180);
+      }
+      alert(title, text) {
+        return new Promise(resolve => {
+          dom.modal.innerHTML = `<div class="dialog"><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="dialog-actions"><button class="primary-btn">确定</button></div></div>`;
+          dom.modal.classList.add("active");
+          dom.modal.querySelector("button").onclick = () => { dom.modal.classList.remove("active"); resolve(true); };
+        });
+      }
+      confirm(title, text, yes, no, enabled) {
+        return new Promise(resolve => {
+          dom.modal.innerHTML = `<div class="dialog"><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="dialog-actions"><button class="primary-btn yes" ${enabled ? "" : "disabled"}>${esc(yes)}</button><button class="ghost-btn no">${esc(no)}</button></div></div>`;
+          dom.modal.classList.add("active");
+          dom.modal.querySelector(".yes").onclick = () => { dom.modal.classList.remove("active"); resolve(true); };
+          dom.modal.querySelector(".no").onclick = () => { dom.modal.classList.remove("active"); resolve(false); };
+        });
+      }
+      promptNumber(title, text) {
+        return new Promise(resolve => {
+          dom.modal.innerHTML = `<div class="dialog"><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="number-grid">${[1,2,3,4,5,6].map(n => `<button class="primary-btn" data-n="${n}">${n}</button>`).join("")}</div><div class="dialog-actions"><button class="ghost-btn cancel">取消</button></div></div>`;
+          dom.modal.classList.add("active");
+          dom.modal.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { dom.modal.classList.remove("active"); resolve(Number(b.dataset.n)); });
+          dom.modal.querySelector(".cancel").onclick = () => { dom.modal.classList.remove("active"); resolve(null); };
+        });
+      }
+    }
+
+    const dom = {
+      home: document.getElementById("homeScreen"),
+      select: document.getElementById("selectScreen"),
+      game: document.getElementById("gameScreen"),
+      win: document.getElementById("winScreen"),
+      continueBtn: document.getElementById("continueBtn"),
+      newGameBtn: document.getElementById("newGameBtn"),
+      backHomeBtn: document.getElementById("backHomeBtn"),
+      confirmPickBtn: document.getElementById("confirmPickBtn"),
+      characterGrid: document.getElementById("characterGrid"),
+      pickNote: document.getElementById("pickNote"),
+      canvas: document.getElementById("gameCanvas"),
+      hud: document.getElementById("hud"),
+      hudAvatar: document.getElementById("hudAvatar"),
+      hudName: document.getElementById("hudName"),
+      hudMoney: document.getElementById("hudMoney"),
+      hudProps: document.getElementById("hudProps"),
+      hudDay: document.getElementById("hudDay"),
+      hudItems: document.getElementById("hudItems"),
+      diceStage: document.getElementById("diceStage"),
+      centralDiceLayer: document.getElementById("centralDiceLayer"),
+      diceChoices: Array.from(document.querySelectorAll(".dice-choice")),
+      goBtn: document.getElementById("goBtn"),
+      modal: document.getElementById("modalLayer"),
+      toast: document.getElementById("toast"),
+      turnBanner: document.getElementById("turnBanner"),
+      speech: document.getElementById("speechBubble"),
+      itemButtons: {
+        remote: document.getElementById("itemRemote"),
+        stay: document.getElementById("itemStay"),
+        reverse: document.getElementById("itemReverse"),
+        rentFree: document.getElementById("itemRent")
+      },
+      saveBtn: document.getElementById("saveBtn"),
+      quitBtn: document.getElementById("quitBtn"),
+      winTitle: document.getElementById("winTitle"),
+      winStats: document.getElementById("winStats"),
+      playAgainBtn: document.getElementById("playAgainBtn"),
+      returnSelectBtn: document.getElementById("returnSelectBtn")
+    };
+
+    const app = { game: null, picks: [] };
+    app.game = new Game();
+
+    function init() {
+      dom.continueBtn.style.display = SaveManager.hasSave() ? "" : "none";
+      renderCharacterGrid();
+      bindEvents();
+      requestAnimationFrame(loop);
+    }
+
+    function bindEvents() {
+      window.addEventListener("resize", () => app.game.renderer.resize());
+      dom.newGameBtn.onclick = () => { SaveManager.clear(); app.picks = []; renderCharacterGrid(); switchScreen("select"); };
+      dom.continueBtn.onclick = () => {
+        const data = SaveManager.load();
+        if (data && data.players && data.players.length === 2) app.game.load(data);
+        else dom.continueBtn.style.display = "none";
+      };
+      dom.backHomeBtn.onclick = () => switchScreen("home");
+      dom.confirmPickBtn.onclick = () => app.game.newGame(app.picks);
+      dom.goBtn.onclick = () => app.game.rollAndMove();
+      dom.saveBtn.onclick = () => { SaveManager.save(app.game); app.game.showToast("已保存"); };
+      dom.quitBtn.onclick = () => { SaveManager.save(app.game); dom.continueBtn.style.display = ""; switchScreen("home"); };
+      dom.playAgainBtn.onclick = () => { SaveManager.clear(); app.picks = []; renderCharacterGrid(); switchScreen("select"); };
+      dom.returnSelectBtn.onclick = () => { SaveManager.clear(); app.picks = []; renderCharacterGrid(); switchScreen("select"); };
+      dom.diceChoices.forEach(btn => btn.onclick = () => {
+        app.game.selectedDice = Number(btn.dataset.count);
+        app.game.dice.setCount(app.game.selectedDice);
+        app.game.updateUi();
+      });
+      Object.entries(dom.itemButtons).forEach(([id, btn]) => btn.onclick = () => app.game.itemSystem.use(id));
+      dom.canvas.addEventListener("pointerdown", e => {
+        if (app.game.screen !== "game") return;
+        const rect = dom.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left, y = e.clientY - rect.top;
+        const hit = hitTile(x, y);
+        if (hit != null) {
+          const tile = app.game.board.tileAt(hit);
+          if (tile.type === "property") {
+            const owner = tile.owner == null ? "未拥有" : app.game.players[tile.owner].character.name;
+            app.game.showToast(`${tile.name} / ${owner} / 价格${tile.price} / 建筑${tile.level}`);
+          } else {
+            app.game.showToast(tile.name);
+          }
+        }
+      });
+    }
+
+    function renderCharacterGrid() {
+      dom.characterGrid.innerHTML = "";
+      CHARACTERS.forEach(ch => {
+        const card = document.createElement("button");
+        card.className = "character-card";
+        card.type = "button";
+        if (app.picks[0] === ch.id) card.classList.add("selected-p1");
+        if (app.picks[1] === ch.id) card.classList.add("selected-p2");
+        const canvas = document.createElement("canvas");
+        canvas.width = 90; canvas.height = 90; canvas.className = "avatar-preview"; canvas.style.color = ch.color;
+        const info = document.createElement("div");
+        info.className = "character-info";
+        info.innerHTML = `<h3>${esc(ch.name)}</h3><p>${esc(ch.desc)}</p><p>${esc(ch.quote)}</p>`;
+        card.append(canvas, info);
+        drawAvatar(canvas.getContext("2d"), ch, 90);
+        card.onclick = () => pickCharacter(ch.id);
+        dom.characterGrid.appendChild(card);
+      });
+      dom.pickNote.textContent = app.picks.length === 0 ? "玩家1请选择" : app.picks.length === 1 ? "玩家2请选择另一个角色" : "准备开始";
+      dom.confirmPickBtn.disabled = app.picks.length !== 2;
+    }
+
+    function pickCharacter(id) {
+      if (app.picks.includes(id)) {
+        app.picks = app.picks.filter(x => x !== id);
+      } else if (app.picks.length < 2) {
+        app.picks.push(id);
+      } else {
+        app.picks[1] = id;
+      }
+      renderCharacterGrid();
+    }
+
+    function switchScreen(name) {
+      ["home", "select", "game", "win"].forEach(k => dom[k].classList.toggle("active", k === name));
+      app.game.screen = name;
+      if (name === "home") dom.continueBtn.style.display = SaveManager.hasSave() ? "" : "none";
+      app.game.renderer.resize();
+    }
+
+    function hitTile(x, y) {
+      const size = app.game.renderer.tileSize();
+      const world = app.game.renderer.screenToWorld(x, y);
+      for (let i = 0; i < app.game.board.tiles.length; i++) {
+        const p = app.game.board.pixelPoint(i, app.game.renderer.worldW, app.game.renderer.worldH);
+        if (Math.abs(world.x - p.x) <= size / 2 && Math.abs(world.y - p.y) <= size / 2) return i;
+      }
+      return null;
+    }
+
+    function loop() {
+      if (app.game.screen === "game") app.game.renderer.draw();
+      requestAnimationFrame(loop);
+    }
+
+    function drawAvatar(ctx, ch, size) {
+      ctx.clearRect(0, 0, size, size);
+      ctx.save();
+      ctx.scale(size / 90, size / 90);
+      const bg = ctx.createLinearGradient(0, 4, 0, 86);
+      bg.addColorStop(0, "#dbeeff");
+      bg.addColorStop(.58, "#8fb9e8");
+      bg.addColorStop(1, "#315a85");
+      ctx.fillStyle = bg;
+      roundRect(ctx, 4, 4, 82, 82, 9); ctx.fill();
+      ctx.strokeStyle = ch.color;
+      ctx.lineWidth = 5;
+      roundRect(ctx, 5, 5, 80, 80, 9); ctx.stroke();
+      ctx.save();
+      ctx.beginPath();
+      roundRect(ctx, 7, 7, 76, 76, 8);
+      ctx.clip();
+      drawPortraitCharacter(ctx, ch, 45, 51, 1.05);
+      ctx.restore();
+      ctx.restore();
+    }
+
+    function drawPortraitCharacter(ctx, ch, x, y, scale) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      drawCharacterBody(ctx, ch, 0, 25, 28, 0, true);
+      drawCharacterHead(ctx, ch, 0, -2, 23, true);
+      ctx.restore();
+    }
+
+    function drawMapCharacter(ctx, ch, x, y, scale, active, walkProgress, facing) {
+      const t = (performance.now() / 220 + walkProgress * 4) % (Math.PI * 2);
+      const walk = walkProgress ? Math.sin(t) : 0;
+      const bob = walkProgress ? Math.abs(Math.sin(t)) * 5 : Math.sin(performance.now() / 320) * 1.2;
+      ctx.save();
+      ctx.translate(x, y - bob);
+      ctx.scale(scale, scale);
+      if (active) drawActiveRing(ctx, ch, walkProgress);
+      ctx.fillStyle = "rgba(0,0,0,.18)";
+      ctx.beginPath(); ctx.ellipse(2, 54, 29, 9, 0, 0, Math.PI*2); ctx.fill();
+      ctx.scale(facing || 1, 1);
+      drawCharacterLegs(ctx, ch, 0, 33, 30, walk);
+      drawCharacterBody(ctx, ch, 0, 20, 30, walk, false);
+      drawCharacterArms(ctx, ch, 0, 18, 30, walk);
+      drawCharacterHead(ctx, ch, 0, -12, 26, false);
+      ctx.restore();
+    }
+
+    function drawActiveRing(ctx, ch, walkProgress) {
+      const pulse = 1 + Math.sin(performance.now() / 140) * .08;
+      ctx.strokeStyle = ch.color;
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.ellipse(0, 22, 38 * pulse, 55 * pulse, 0, 0, Math.PI*2); ctx.stroke();
+      if (walkProgress) {
+        ctx.fillStyle = "rgba(255,255,255,.65)";
+        ctx.beginPath(); ctx.arc(28, -34, 4, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(-30, -20, 3, 0, Math.PI*2); ctx.fill();
+      }
+    }
+
+    function drawCharacterBody(ctx, ch, x, y, s, walk, portrait) {
+      ctx.save();
+      ctx.translate(x, y);
+      if (ch.face === "robot") {
+        ctx.fillStyle = "#e6eef3";
+        ctx.strokeStyle = "#637687";
+        ctx.lineWidth = 3;
+        roundRect(ctx, -s*.34, -s*.25, s*.68, s*.62, 7); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = ch.color;
+        ctx.beginPath(); ctx.arc(0, s*.02, s*.15, 0, Math.PI*2); ctx.fill();
+      } else if (ch.face === "horse") {
+        ctx.fillStyle = "#f5f0de";
+        roundRect(ctx, -s*.30, -s*.20, s*.60, s*.62, 10); ctx.fill();
+        ctx.fillStyle = ch.accent;
+        ctx.fillRect(-s*.22, s*.05, s*.44, s*.12);
+      } else {
+        ctx.fillStyle = ch.face === "cap" ? "#357d3d" : ch.face === "lady" ? "#d84242" : ch.face === "zombie" ? "#5b392c" : ch.color;
+        roundRect(ctx, -s*.32, -s*.22, s*.64, s*.72, 7); ctx.fill();
+        ctx.fillStyle = tint(ch.color, .60);
+        roundRect(ctx, -s*.22, -s*.10, s*.44, s*.24, 5); ctx.fill();
+        if (ch.face === "cap") {
+          ctx.fillStyle = "#d93d36";
+          ctx.beginPath(); ctx.moveTo(s*.18, -s*.08); ctx.lineTo(s*.48, -s*.24); ctx.lineTo(s*.40, s*.06); ctx.closePath(); ctx.fill();
+        }
+      }
+      if (portrait) {
+        ctx.fillStyle = "rgba(255,255,255,.20)";
+        ctx.fillRect(-s*.26, -s*.12, s*.52, s*.08);
+      }
+      ctx.restore();
+    }
+
+    function drawCharacterArms(ctx, ch, x, y, s, walk) {
+      const arm = Math.sin(Math.asin(clamp(walk, -1, 1))) * s * .17;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.strokeStyle = ch.face === "robot" ? "#728292" : ch.skin;
+      ctx.lineWidth = 6;
+      ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-s*.27, -s*.02); ctx.lineTo(-s*.52, s*.20 + arm); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s*.27, -s*.02); ctx.lineTo(s*.52, s*.20 - arm); ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawCharacterLegs(ctx, ch, x, y, s, walk) {
+      const swing = walk * s * .22;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.strokeStyle = ch.face === "robot" ? "#5e7181" : "#26364a";
+      ctx.lineWidth = 7;
+      ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-s*.13, -s*.02); ctx.lineTo(-s*.18 - swing, s*.50); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s*.13, -s*.02); ctx.lineTo(s*.18 + swing, s*.50); ctx.stroke();
+      ctx.strokeStyle = "#171d27";
+      ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(-s*.18 - swing, s*.50); ctx.lineTo(-s*.33 - swing, s*.52); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s*.18 + swing, s*.50); ctx.lineTo(s*.33 + swing, s*.52); ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawCharacterHead(ctx, ch, x, y, r, portrait) {
+      ctx.save();
+      ctx.translate(x, y);
+      if (ch.face === "robot") drawRobotHead(ctx, ch, r, portrait);
+      else if (ch.face === "horse") drawHorseHead(ctx, ch, r, portrait);
+      else if (ch.face === "zombie") drawZombieHead(ctx, ch, r, portrait);
+      else drawHumanHead(ctx, ch, r, ch.face, portrait);
+      ctx.restore();
+    }
+
+    function drawHumanHead(ctx, ch, r, type, portrait) {
+      ctx.fillStyle = ch.hair;
+      if (type === "worker") {
+        for (let i = -4; i <= 4; i++) {
+          ctx.beginPath();
+          ctx.ellipse(i * r*.10, -r*.70 - Math.abs(i)*1.2, r*.14, r*.38, i*.18, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+      ctx.beginPath(); ctx.arc(0, -r*.16, r*.77, Math.PI*.95, Math.PI*2.05); ctx.fill();
+      ctx.fillStyle = ch.skin;
+      ctx.beginPath(); ctx.ellipse(0, 0, r*.62, r*.72, 0, 0, Math.PI*2); ctx.fill();
+      if (type === "cap") {
+        ctx.fillStyle = "#2e7d42";
+        ctx.beginPath(); ctx.arc(0, -r*.54, r*.70, Math.PI, 0); ctx.fill();
+        ctx.fillRect(-r*.56, -r*.55, r*1.12, r*.24);
+        ctx.fillStyle = "#e23737"; star(ctx, 0, -r*.73, r*.15); ctx.fill();
+      }
+      if (type === "lady") {
+        ctx.fillStyle = ch.hair;
+        ctx.beginPath(); ctx.ellipse(-r*.52, -r*.10, r*.28, r*.74, -.25, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(r*.52, -r*.10, r*.28, r*.74, .25, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#222";
+        roundRect(ctx, -r*.46, -r*.18, r*.38, r*.16, 4); ctx.fill();
+        roundRect(ctx, r*.08, -r*.18, r*.38, r*.16, 4); ctx.fill();
+        ctx.fillStyle = "#f0c022";
+        ctx.beginPath(); ctx.arc(-r*.62, r*.03, r*.08, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(r*.62, r*.03, r*.08, 0, Math.PI*2); ctx.fill();
+      }
+      eye(ctx, -r*.22, -r*.12, r*.075); eye(ctx, r*.22, -r*.12, r*.075);
+      if (type === "worker") {
+        ctx.strokeStyle = "#1e2633";
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(-r*.38, -r*.28); ctx.lineTo(-r*.10, -r*.21); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(r*.38, -r*.28); ctx.lineTo(r*.10, -r*.21); ctx.stroke();
+      }
+      ctx.strokeStyle = "#793d33"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, r*.13, r*.20, 0, Math.PI); ctx.stroke();
+      if (portrait) {
+        ctx.fillStyle = "rgba(255,255,255,.38)";
+        ctx.beginPath(); ctx.arc(-r*.22, -r*.25, r*.08, 0, Math.PI*2); ctx.fill();
+      }
+    }
+
+    function drawHorseHead(ctx, ch, r) {
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.ellipse(0, 0, r*.64, r*.72, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#f5a8a8";
+      ctx.beginPath(); ctx.moveTo(-r*.48, -r*.52); ctx.lineTo(-r*.72, -r*1.05); ctx.lineTo(-r*.18, -r*.70); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(r*.48, -r*.52); ctx.lineTo(r*.72, -r*1.05); ctx.lineTo(r*.18, -r*.70); ctx.fill();
+      ctx.fillStyle = "#e9e2d4";
+      for (let i = -3; i <= 3; i++) {
+        ctx.beginPath(); ctx.ellipse(i*r*.11, -r*.45 - Math.abs(i), r*.18, r*.26, i*.12, 0, Math.PI*2); ctx.fill();
+      }
+      eye(ctx, -r*.22, -r*.12, r*.08); eye(ctx, r*.22, -r*.12, r*.08);
+      ctx.fillStyle = "#ff8f4b";
+      ctx.beginPath(); ctx.ellipse(0, r*.22, r*.28, r*.18, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#2c3037";
+      ctx.beginPath(); ctx.arc(-r*.09, r*.20, r*.035, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(r*.09, r*.20, r*.035, 0, Math.PI*2); ctx.fill();
+    }
+
+    function drawZombieHead(ctx, ch, r) {
+      ctx.fillStyle = ch.skin;
+      ctx.beginPath(); ctx.ellipse(0, 0, r*.62, r*.74, -.13, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = ch.hair;
+      ctx.beginPath(); ctx.ellipse(0, -r*.58, r*.60, r*.23, -.2, 0, Math.PI*2); ctx.fill();
+      eye(ctx, -r*.24, -r*.12, r*.12, "#f6ea46"); eye(ctx, r*.24, -r*.10, r*.12, "#f6ea46");
+      ctx.fillStyle = "#431d20"; roundRect(ctx, -r*.25, r*.17, r*.50, r*.23, 3); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.fillRect(-r*.17, r*.17, r*.08, r*.15); ctx.fillRect(r*.07, r*.17, r*.08, r*.15);
+    }
+
+    function drawRobotHead(ctx, ch, r) {
+      ctx.fillStyle = ch.skin; ctx.strokeStyle = "#6b7e8f"; ctx.lineWidth = 3;
+      roundRect(ctx, -r*.58, -r*.58, r*1.16, r*1.08, 8); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = ch.accent; ctx.beginPath(); ctx.moveTo(0, -r*.58); ctx.lineTo(0, -r*.92); ctx.stroke();
+      ctx.fillStyle = ch.accent; ctx.beginPath(); ctx.arc(0, -r*.98, r*.10, 0, Math.PI*2); ctx.fill();
+      eye(ctx, -r*.22, -r*.16, r*.11, "#f6ea46"); eye(ctx, r*.22, -r*.16, r*.11, "#f6ea46");
+      ctx.strokeStyle = "#5d6b78"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-r*.25, r*.16); ctx.lineTo(r*.25, r*.16); ctx.stroke();
+    }
+
+    function eye(ctx, x, y, r, color) {
+      ctx.fillStyle = color || "#202638";
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(x - r*.25, y - r*.25, r*.28, 0, Math.PI*2); ctx.fill();
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      const rr = Math.min(r, w/2, h/2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rr);
+      ctx.arcTo(x + w, y + h, x, y + h, rr);
+      ctx.arcTo(x, y + h, x, y, rr);
+      ctx.arcTo(x, y, x + w, y, rr);
+      ctx.closePath();
+    }
+
+    function star(ctx, x, y, r) {
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI/2 + i * Math.PI / 5;
+        const rr = i % 2 ? r*.42 : r;
+        const px = x + Math.cos(a) * rr;
+        const py = y + Math.sin(a) * rr;
+        i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+      }
+      ctx.closePath();
+    }
+
+    function tint(hex, mix) {
+      const n = parseInt(hex.slice(1), 16);
+      const r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+      const tr = Math.round(r + (255 - r) * mix);
+      const tg = Math.round(g + (255 - g) * mix);
+      const tb = Math.round(b + (255 - b) * mix);
+      return `rgb(${tr},${tg},${tb})`;
+    }
+    function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+    function easeInOut(t) { return t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+    function nextFrame() { return new Promise(r => requestAnimationFrame(r)); }
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
+    }
+
+    init();
+  </script>
+</body>
+</html>
