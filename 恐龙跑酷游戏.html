@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <title>恐龙跑酷游戏</title>
+  <style>
+:root {
+  --ink: #111;
+  --paper: #f7f7f7;
+  --muted: #5f5f5f;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+body {
+  color: var(--ink);
+  font-family: "Courier New", "PingFang SC", "Microsoft YaHei", monospace;
+  user-select: none;
+  touch-action: none;
+}
+
+.game-shell {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(#fefefe 0 67%, #efefef 67% 100%);
+}
+
+#gameCanvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #fafafa;
+}
+
+.hud {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  left: max(22px, env(safe-area-inset-left));
+  right: max(22px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  pointer-events: none;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.title {
+  font-size: clamp(18px, 2.2vw, 28px);
+}
+
+.counter {
+  min-width: 180px;
+  text-align: right;
+  font-size: clamp(18px, 2vw, 26px);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(247, 247, 247, 0.42);
+  pointer-events: none;
+}
+
+.overlay.is-visible {
+  display: flex;
+}
+
+.overlay-panel {
+  width: min(560px, 88vw);
+  border: 4px solid var(--ink);
+  background: rgba(250, 250, 250, 0.92);
+  box-shadow: 8px 8px 0 var(--ink);
+  padding: 28px 30px;
+  text-align: center;
+}
+
+.overlay-panel h1 {
+  margin: 0 0 14px;
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1.1;
+}
+
+.overlay-panel p {
+  margin: 10px 0 0;
+  font-size: clamp(17px, 2vw, 22px);
+  font-weight: 700;
+}
+
+.overlay-panel .hint {
+  color: var(--muted);
+  font-size: clamp(14px, 1.6vw, 18px);
+}
+
+.start-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px auto 0;
+  pointer-events: auto;
+}
+
+.start-button,
+.revive-button {
+  min-height: 58px;
+  border: 4px solid var(--ink);
+  border-radius: 0;
+  background: #fafafa;
+  color: var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+  font: inherit;
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 900;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.start-button {
+  width: 100%;
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.start-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.revive-button {
+  display: none;
+  width: min(320px, 76vw);
+  margin: 22px auto 0;
+  box-shadow: 6px 6px 0 var(--ink);
+}
+
+.revive-button.is-visible {
+  display: block;
+}
+
+.revive-button:active {
+  transform: translate(3px, 3px);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+@media (orientation: portrait) {
+  .game-shell::after {
+    content: "建议横屏游玩";
+    position: fixed;
+    right: 18px;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    border: 3px solid var(--ink);
+    background: #fafafa;
+    padding: 10px 12px;
+    font-size: 16px;
+    font-weight: 800;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <main class="game-shell" aria-label="恐龙跑酷游戏">
+    <canvas id="gameCanvas" aria-label="恐龙跑酷游戏画面"></canvas>
+    <div class="hud" aria-hidden="true">
+      <div class="title">恐龙跑酷游戏</div>
+      <div id="avoidCounter" class="counter">躲避障碍：0</div>
+    </div>
+    <div id="overlay" class="overlay is-visible">
+      <div class="overlay-panel">
+        <h1>恐龙跑酷游戏</h1>
+        <p id="overlayText">选择起始难度</p>
+        <div id="startOptions" class="start-options">
+          <button class="start-button" type="button" data-start="0">普通</button>
+          <button class="start-button" type="button" data-start="30">30分</button>
+          <button class="start-button" type="button" data-start="50">50分</button>
+        </div>
+        <button id="reviveButton" class="revive-button" type="button">复活</button>
+        <p class="hint">游戏中：点击/空格跳跃　下滑/↓低头</p>
+      </div>
+    </div>
+  </main>
+  <script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const counterEl = document.getElementById("avoidCounter");
+const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlayText");
+const startOptions = document.getElementById("startOptions");
+const reviveButton = document.getElementById("reviveButton");
+
+const DPR_LIMIT = 2;
+const GAME = {
+  ready: "ready",
+  running: "running",
+  over: "over"
+};
+
+let state = GAME.ready;
+let width = 0;
+let height = 0;
+let scale = 1;
+let groundY = 0;
+let lastTime = 0;
+let touchStart = null;
+let selectedStartAvoided = 0;
+
+const world = {
+  elapsed: 0,
+  speed: 440,
+  spawnTimer: 1,
+  spawnGap: 1.35,
+  groundOffset: 0,
+  cloudOffset: 0,
+  startElapsed: 0,
+  startAvoided: 0,
+  avoided: 0,
+  obstacles: [],
+  clouds: []
+};
+
+const dino = {
+  x: 0,
+  y: 0,
+  baseY: 0,
+  w: 54,
+  h: 72,
+  duckH: 44,
+  vy: 0,
+  grounded: true,
+  ducking: false,
+  runFrame: 0,
+  jumpCooldown: 0
+};
+
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, DPR_LIMIT);
+  width = Math.max(640, window.innerWidth);
+  height = Math.max(360, window.innerHeight);
+  canvas.width = Math.floor(width * dpr);
+  canvas.height = Math.floor(height * dpr);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  scale = Math.min(width / 1024, height / 650);
+  groundY = Math.round(height * 0.72);
+  dino.w = Math.round(54 * scale);
+  dino.h = Math.round(72 * scale);
+  dino.duckH = Math.round(44 * scale);
+  dino.x = Math.round(width * 0.15);
+  dino.baseY = groundY - dino.h;
+  if (dino.grounded) {
+    dino.y = dino.baseY;
+  }
+}
+
+function getStartElapsed(avoided) {
+  return avoided * 1.25;
+}
+
+function resetGame(startAvoided = selectedStartAvoided) {
+  world.elapsed = 0;
+  world.startAvoided = startAvoided;
+  world.startElapsed = getStartElapsed(startAvoided);
+  const startDifficulty = getDifficulty();
+  world.speed = (440 + 240 * startDifficulty) * scale;
+  world.spawnTimer = 0.95;
+  world.spawnGap = 1.35 - 0.55 * startDifficulty;
+  world.groundOffset = 0;
+  world.cloudOffset = 0;
+  world.avoided = startAvoided;
+  world.obstacles = [];
+  world.clouds = createClouds();
+
+  dino.y = dino.baseY;
+  dino.vy = 0;
+  dino.grounded = true;
+  dino.ducking = false;
+  dino.runFrame = 0;
+  dino.jumpCooldown = 0;
+
+  state = GAME.running;
+  overlay.classList.remove("is-visible");
+  startOptions.style.display = "none";
+  reviveButton.classList.remove("is-visible");
+  updateCounter();
+}
+
+function showStartOptions() {
+  state = GAME.ready;
+  touchStart = null;
+  dino.ducking = false;
+  overlayText.textContent = "选择起始难度";
+  overlay.classList.add("is-visible");
+  startOptions.style.display = "grid";
+  reviveButton.classList.remove("is-visible");
+}
+
+function getDifficulty() {
+  return Math.min(1, (world.elapsed + world.startElapsed) / 95);
+}
+
+function createClouds() {
+  return Array.from({ length: 5 }, (_, index) => ({
+    x: (width / 5) * index + 80,
+    y: 70 + ((index * 47) % 90),
+    w: 72 + (index % 2) * 28,
+    speed: 18 + index * 5
+  }));
+}
+
+function jump() {
+  if (state !== GAME.running) {
+    return;
+  }
+  if (!dino.grounded || dino.jumpCooldown > 0) {
+    return;
+  }
+  dino.ducking = false;
+  dino.vy = -840 * scale;
+  dino.grounded = false;
+  dino.jumpCooldown = 0.08;
+}
+
+function setDuck(isDucking) {
+  if (state !== GAME.running || !dino.grounded) {
+    dino.ducking = false;
+    return;
+  }
+  dino.ducking = isDucking;
+}
+
+function onPointerDown(event) {
+  event.preventDefault();
+  if (state !== GAME.running) {
+    return;
+  }
+  touchStart = {
+    x: event.clientX,
+    y: event.clientY,
+    time: performance.now()
+  };
+}
+
+function onPointerMove(event) {
+  if (!touchStart || state !== GAME.running) {
+    return;
+  }
+  const dy = event.clientY - touchStart.y;
+  const dx = Math.abs(event.clientX - touchStart.x);
+  if (dy > 34 && dy > dx * 1.2) {
+    setDuck(true);
+  }
+}
+
+function onPointerUp(event) {
+  event.preventDefault();
+  if (!touchStart) {
+    return;
+  }
+  const dy = event.clientY - touchStart.y;
+  const dx = Math.abs(event.clientX - touchStart.x);
+  const duration = performance.now() - touchStart.time;
+  const isTap = Math.abs(dy) < 24 && dx < 24 && duration < 420;
+  touchStart = null;
+
+  if (state === GAME.running) {
+    if (isTap) {
+      jump();
+    }
+    setDuck(false);
+  }
+}
+
+function onKeyDown(event) {
+  if (event.code === "Space") {
+    event.preventDefault();
+    jump();
+  }
+  if (event.code === "ArrowDown") {
+    event.preventDefault();
+    setDuck(true);
+  }
+}
+
+function onKeyUp(event) {
+  if (event.code === "ArrowDown") {
+    event.preventDefault();
+    setDuck(false);
+  }
+}
+
+function spawnObstacle() {
+  const progressElapsed = world.elapsed + world.startElapsed;
+  const birdChance = Math.min(0.47, 0.22 + progressElapsed / 75);
+  const type = Math.random() < birdChance ? "bird" : "spike";
+  const baseSpeed = world.speed * (type === "bird" ? 1.04 : 1);
+
+  if (type === "spike") {
+    const size = Math.round((46 + Math.random() * 12) * scale);
+    world.obstacles.push({
+      type,
+      x: width + size,
+      y: groundY - size,
+      w: size,
+      h: size,
+      speed: baseSpeed,
+      counted: false,
+      phase: 0
+    });
+  } else {
+    const birdW = Math.round(68 * scale);
+    const birdH = Math.round(38 * scale);
+    world.obstacles.push({
+      type,
+      x: width + birdW,
+      y: groundY - dino.h - Math.round(12 * scale),
+      w: birdW,
+      h: birdH,
+      speed: baseSpeed,
+      counted: false,
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+}
+
+function update(dt) {
+  if (state !== GAME.running) {
+    return;
+  }
+
+  world.elapsed += dt;
+  const difficulty = getDifficulty();
+  world.speed = (440 + 240 * difficulty) * scale;
+  world.spawnGap = 1.35 - 0.55 * difficulty;
+  world.spawnTimer -= dt;
+  world.groundOffset = (world.groundOffset + world.speed * dt) % (42 * scale);
+  world.cloudOffset += dt;
+
+  if (world.spawnTimer <= 0) {
+    spawnObstacle();
+    const jitter = 0.76 + Math.random() * 0.58;
+    world.spawnTimer = world.spawnGap * jitter;
+  }
+
+  dino.jumpCooldown = Math.max(0, dino.jumpCooldown - dt);
+  dino.runFrame += dt * (9 + difficulty * 4);
+
+  if (!dino.grounded) {
+    dino.vy += 2300 * scale * dt;
+    dino.y += dino.vy * dt;
+    if (dino.y >= dino.baseY) {
+      dino.y = dino.baseY;
+      dino.vy = 0;
+      dino.grounded = true;
+    }
+  }
+
+  for (const obstacle of world.obstacles) {
+    obstacle.x -= obstacle.speed * dt;
+    obstacle.phase += dt * 10;
+    if (!obstacle.counted && obstacle.x + obstacle.w < dino.x) {
+      obstacle.counted = true;
+      world.avoided += 1;
+      updateCounter();
+    }
+  }
+
+  world.obstacles = world.obstacles.filter((obstacle) => obstacle.x + obstacle.w > -80);
+
+  for (const cloud of world.clouds) {
+    cloud.x -= cloud.speed * dt;
+    if (cloud.x + cloud.w < -20) {
+      cloud.x = width + 80 + Math.random() * 220;
+      cloud.y = 58 + Math.random() * 115;
+    }
+  }
+
+  const dinoBox = getDinoBox();
+  for (const obstacle of world.obstacles) {
+    if (rectsOverlap(dinoBox, getObstacleBox(obstacle))) {
+      gameOver();
+      break;
+    }
+  }
+}
+
+function updateCounter() {
+  counterEl.textContent = `躲避障碍：${world.avoided}`;
+}
+
+function gameOver() {
+  state = GAME.over;
+  overlayText.textContent = `Game Over　本局躲避障碍：${world.avoided}`;
+  overlay.classList.add("is-visible");
+  reviveButton.classList.add("is-visible");
+}
+
+function getDinoBox() {
+  const duckOffset = dino.ducking ? dino.h - dino.duckH : 0;
+  const boxH = dino.ducking ? dino.duckH : dino.h;
+  const boxW = dino.ducking ? dino.w * 1.18 : dino.w * 0.82;
+  return {
+    x: dino.x + dino.w * 0.1,
+    y: dino.y + duckOffset + dino.h * 0.08,
+    w: boxW,
+    h: boxH * 0.82
+  };
+}
+
+function getObstacleBox(obstacle) {
+  if (obstacle.type === "spike") {
+    return {
+      x: obstacle.x + obstacle.w * 0.18,
+      y: obstacle.y + obstacle.h * 0.16,
+      w: obstacle.w * 0.64,
+      h: obstacle.h * 0.78
+    };
+  }
+  return {
+    x: obstacle.x + obstacle.w * 0.12,
+    y: obstacle.y + obstacle.h * 0.2,
+    w: obstacle.w * 0.76,
+    h: obstacle.h * 0.58
+  };
+}
+
+function rectsOverlap(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, width, height);
+  drawSky();
+  drawGround();
+  drawDino();
+  for (const obstacle of world.obstacles) {
+    if (obstacle.type === "spike") {
+      drawSpike(obstacle);
+    } else {
+      drawBird(obstacle);
+    }
+  }
+}
+
+function drawSky() {
+  ctx.fillStyle = "#fafafa";
+  ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = "#111";
+  ctx.lineWidth = Math.max(2, 3 * scale);
+
+  for (const cloud of world.clouds) {
+    drawCloud(cloud.x, cloud.y, cloud.w);
+  }
+}
+
+function drawCloud(x, y, w) {
+  const h = w * 0.34;
+  ctx.save();
+  ctx.lineWidth = Math.max(2, 3 * scale);
+  ctx.strokeStyle = "#111";
+  ctx.beginPath();
+  ctx.moveTo(x, y + h * 0.72);
+  ctx.lineTo(x + w * 0.18, y + h * 0.72);
+  ctx.quadraticCurveTo(x + w * 0.22, y + h * 0.22, x + w * 0.43, y + h * 0.38);
+  ctx.quadraticCurveTo(x + w * 0.56, y - h * 0.1, x + w * 0.72, y + h * 0.38);
+  ctx.quadraticCurveTo(x + w * 0.94, y + h * 0.34, x + w, y + h * 0.72);
+  ctx.lineTo(x + w * 1.16, y + h * 0.72);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawGround() {
+  ctx.strokeStyle = "#111";
+  ctx.lineWidth = Math.max(3, 4 * scale);
+  ctx.beginPath();
+  ctx.moveTo(0, groundY);
+  ctx.lineTo(width, groundY);
+  ctx.stroke();
+}
+
+function drawDino() {
+  const px = Math.max(2, Math.round(4 * scale));
+  const legFrame = Math.floor(dino.runFrame) % 2;
+  const duck = dino.ducking && dino.grounded;
+  const x = Math.round(dino.x);
+  const y = Math.round(dino.y + (duck ? dino.h - dino.duckH : 0));
+
+  ctx.fillStyle = "#111";
+
+  if (duck) {
+    block(x + 2 * px, y + 5 * px, 12 * px, 6 * px);
+    block(x + 12 * px, y + 2 * px, 12 * px, 7 * px);
+    block(x + 21 * px, y + 4 * px, 8 * px, 5 * px);
+    block(x + 25 * px, y + 2 * px, 2 * px, 2 * px);
+    block(x, y + 7 * px, 5 * px, 2 * px);
+    block(x + 7 * px, y + 11 * px, 4 * px, 3 * px);
+    block(x + 17 * px, y + 10 * px, 4 * px, 4 * px);
+    block(x + (legFrame ? 8 : 17) * px, y + 14 * px, 3 * px, 3 * px);
+    return;
+  }
+
+  const jumpLift = dino.grounded ? 0 : Math.sin(performance.now() / 110) * px;
+  const yy = y + jumpLift;
+  block(x + 6 * px, yy + 7 * px, 9 * px, 12 * px);
+  block(x + 12 * px, yy + 2 * px, 9 * px, 8 * px);
+  block(x + 19 * px, yy + 4 * px, 5 * px, 3 * px);
+  block(x + 19 * px, yy + 1 * px, 2 * px, 2 * px);
+  block(x + 2 * px, yy + 10 * px, 5 * px, 3 * px);
+  block(x, yy + 8 * px, 3 * px, 2 * px);
+  block(x + 10 * px, yy + 14 * px, 4 * px, 4 * px);
+  block(x + 5 * px, yy + 18 * px, 4 * px, 4 * px);
+  block(x + 13 * px, yy + 18 * px, 4 * px, 4 * px);
+
+  if (dino.grounded) {
+    block(x + (legFrame ? 4 : 13) * px, yy + 21 * px, 3 * px, 3 * px);
+    block(x + (legFrame ? 14 : 5) * px, yy + 21 * px, 3 * px, 3 * px);
+  } else {
+    block(x + 5 * px, yy + 21 * px, 3 * px, 2 * px);
+    block(x + 14 * px, yy + 21 * px, 3 * px, 2 * px);
+  }
+}
+
+function drawSpike(obstacle) {
+  ctx.fillStyle = "#111";
+  ctx.beginPath();
+  ctx.moveTo(obstacle.x, obstacle.y + obstacle.h);
+  ctx.lineTo(obstacle.x + obstacle.w * 0.5, obstacle.y);
+  ctx.lineTo(obstacle.x + obstacle.w, obstacle.y + obstacle.h);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillRect(obstacle.x - obstacle.w * 0.08, obstacle.y + obstacle.h - 4 * scale, obstacle.w * 1.16, 4 * scale);
+}
+
+function drawBird(obstacle) {
+  const flap = Math.sin(obstacle.phase) > 0 ? -1 : 1;
+  const x = obstacle.x;
+  const y = obstacle.y;
+  const w = obstacle.w;
+  const h = obstacle.h;
+
+  ctx.fillStyle = "#111";
+  block(x + w * 0.36, y + h * 0.36, w * 0.32, h * 0.24);
+  block(x + w * 0.64, y + h * 0.3, w * 0.18, h * 0.18);
+  block(x + w * 0.78, y + h * 0.34, w * 0.08, h * 0.08);
+  block(x + w * 0.7, y + h * 0.32, Math.max(2, 3 * scale), Math.max(2, 3 * scale));
+
+  ctx.beginPath();
+  if (flap < 0) {
+    ctx.moveTo(x + w * 0.45, y + h * 0.42);
+    ctx.lineTo(x + w * 0.08, y + h * 0.02);
+    ctx.lineTo(x + w * 0.36, y + h * 0.55);
+  } else {
+    ctx.moveTo(x + w * 0.45, y + h * 0.5);
+    ctx.lineTo(x + w * 0.12, y + h * 0.94);
+    ctx.lineTo(x + w * 0.38, y + h * 0.44);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function block(x, y, w, h) {
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+function loop(timestamp) {
+  if (!lastTime) {
+    lastTime = timestamp;
+  }
+  const dt = Math.min(0.033, (timestamp - lastTime) / 1000);
+  lastTime = timestamp;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener("resize", resize);
+window.addEventListener("keydown", onKeyDown);
+window.addEventListener("keyup", onKeyUp);
+canvas.addEventListener("pointerdown", onPointerDown, { passive: false });
+canvas.addEventListener("pointermove", onPointerMove, { passive: false });
+canvas.addEventListener("pointerup", onPointerUp, { passive: false });
+canvas.addEventListener("pointercancel", () => {
+  touchStart = null;
+  setDuck(false);
+});
+reviveButton.addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (state === GAME.over) {
+    showStartOptions();
+  }
+});
+startOptions.addEventListener("click", (event) => {
+  const button = event.target.closest(".start-button");
+  if (!button || state !== GAME.ready) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  selectedStartAvoided = Number(button.dataset.start) || 0;
+  resetGame(selectedStartAvoided);
+});
+
+resize();
+world.clouds = createClouds();
+updateCounter();
+requestAnimationFrame(loop);
+
+  </script>
+</body>
+</html>

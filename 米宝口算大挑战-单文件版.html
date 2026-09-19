@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>米宝口算大挑战</title>
+  <style>
+:root {
+  --bg-top: #fffaf1;
+  --bg-bottom: #dff5ff;
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(255, 255, 255, 0.88);
+  --text-main: #2f4166;
+  --text-soft: #6780a7;
+  --yellow: #ffd85b;
+  --yellow-deep: #f7b500;
+  --pink: #ff8fb1;
+  --pink-deep: #ff5f8a;
+  --blue: #7bcfff;
+  --blue-deep: #3ba8eb;
+  --green: #4dd39b;
+  --red: #ff6f6f;
+  --white: #ffffff;
+  --shadow: 0 20px 48px rgba(79, 126, 178, 0.18);
+  --radius-xl: 34px;
+  --radius-lg: 26px;
+  --radius-md: 20px;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Trebuchet MS", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  color: var(--text-main);
+  background:
+    radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.98), transparent 18%),
+    radial-gradient(circle at 85% 10%, rgba(255, 226, 145, 0.5), transparent 22%),
+    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  border: 0;
+  cursor: pointer;
+}
+
+.app {
+  position: relative;
+  min-height: 100vh;
+  padding: max(20px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+.background-decor {
+  position: fixed;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  filter: blur(8px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.background-decor-left {
+  top: 50px;
+  left: -80px;
+  background: radial-gradient(circle, rgba(255, 216, 91, 0.85), rgba(255, 216, 91, 0));
+}
+
+.background-decor-right {
+  right: -70px;
+  bottom: 120px;
+  background: radial-gradient(circle, rgba(123, 207, 255, 0.85), rgba(123, 207, 255, 0));
+}
+
+.screen {
+  display: none;
+  width: min(860px, 100%);
+  margin: 0 auto;
+}
+
+.screen.active {
+  display: block;
+  animation: screen-in 0.3s ease;
+}
+
+.card {
+  position: relative;
+  background: var(--card-bg);
+  border: 2px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.hero-card,
+.result-card,
+.game-shell {
+  padding: 28px 24px;
+}
+
+.hero-card {
+  min-height: min(92vh, 980px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.hero-tag,
+.result-tag,
+.question-type,
+.status-label,
+.info-label {
+  color: var(--text-soft);
+  letter-spacing: 0.04em;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  margin-top: 10px;
+  font-size: clamp(2.4rem, 7vw, 4.2rem);
+  line-height: 1.05;
+}
+
+.hero-text {
+  width: min(540px, 100%);
+  margin: 14px auto 0;
+  font-size: clamp(1rem, 2.8vw, 1.2rem);
+  line-height: 1.65;
+  color: var(--text-soft);
+}
+
+.home-actions,
+.result-actions {
+  display: grid;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.mode-btn,
+.secondary-btn,
+.option-btn {
+  min-height: 72px;
+  border-radius: 24px;
+  font-weight: 800;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+
+.mode-btn:active,
+.secondary-btn:active,
+.option-btn:active {
+  transform: scale(0.98);
+}
+
+.mode-btn {
+  color: var(--text-main);
+  font-size: clamp(1.2rem, 3vw, 1.45rem);
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.08);
+}
+
+.mode-btn-yellow {
+  background: linear-gradient(180deg, #ffe88d, var(--yellow));
+}
+
+.mode-btn-pink {
+  background: linear-gradient(180deg, #ffbad0, var(--pink));
+}
+
+.mode-btn-blue {
+  background: linear-gradient(180deg, #afe4ff, var(--blue));
+}
+
+.secondary-btn {
+  background: #eef7ff;
+  color: var(--text-main);
+  font-size: 1.05rem;
+  box-shadow: inset 0 -5px 0 rgba(77, 117, 161, 0.12);
+}
+
+.secondary-btn-large {
+  min-height: 68px;
+  font-size: 1.15rem;
+}
+
+.home-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.info-chip,
+.result-item,
+.status-box {
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.82);
+  border: 2px solid rgba(210, 232, 255, 0.9);
+}
+
+.info-chip {
+  padding: 14px 16px;
+}
+
+.info-chip strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.55rem;
+}
+
+.home-note {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(255, 249, 217, 0.88), rgba(255, 255, 255, 0.78));
+  color: var(--text-soft);
+  line-height: 1.7;
+}
+
+.game-shell {
+  min-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.status-box {
+  padding: 14px 10px;
+  text-align: center;
+}
+
+.status-box strong {
+  display: block;
+  margin-top: 6px;
+  font-size: clamp(1.55rem, 4vw, 2rem);
+}
+
+.status-time strong {
+  color: var(--pink-deep);
+}
+
+.game-mode-banner {
+  margin-top: 18px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 232, 141, 0.95), rgba(123, 207, 255, 0.95));
+  font-weight: 700;
+  text-align: center;
+}
+
+.feedback-area {
+  min-height: 56px;
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.feedback-pill {
+  min-height: 48px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-soft);
+  font-weight: 700;
+  text-align: center;
+}
+
+.feedback-pill.success {
+  background: rgba(77, 211, 155, 0.18);
+  color: #0c8a5d;
+}
+
+.feedback-pill.error {
+  background: rgba(255, 111, 111, 0.18);
+  color: #d44141;
+}
+
+.feedback-pill.combo {
+  background: rgba(255, 216, 91, 0.26);
+  color: #9a6a00;
+  animation: pop 0.25s ease;
+}
+
+.question-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.question-card {
+  padding: 28px 20px;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.95), transparent 58%),
+    linear-gradient(180deg, #fff8d9, #fff0f6);
+  text-align: center;
+}
+
+.question-text {
+  margin-top: 10px;
+  font-size: clamp(3rem, 9vw, 5.8rem);
+  line-height: 1.12;
+  font-weight: 900;
+  color: var(--text-main);
+}
+
+.question-card.correct-flash {
+  animation: correct-flash 0.35s ease;
+}
+
+.question-card.wrong-flash {
+  animation: wrong-flash 0.35s ease;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.option-btn {
+  padding: 12px;
+  background: linear-gradient(180deg, #ffffff, #edf8ff);
+  color: var(--text-main);
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  box-shadow: inset 0 -6px 0 rgba(102, 145, 193, 0.12);
+}
+
+.option-btn.correct {
+  background: linear-gradient(180deg, #c4ffe6, #7ce0b7);
+  color: #0b7f53;
+}
+
+.option-btn.wrong {
+  background: linear-gradient(180deg, #ffd4d4, #ff9c9c);
+  color: #b73939;
+}
+
+.option-btn:disabled,
+.secondary-btn:disabled {
+  cursor: default;
+}
+
+.game-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.mini-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  color: var(--text-soft);
+  font-weight: 700;
+}
+
+.mini-stats strong {
+  color: var(--text-main);
+}
+
+.result-card {
+  min-height: min(92vh, 980px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.result-card h2 {
+  margin-top: 8px;
+  font-size: clamp(2rem, 6vw, 3rem);
+}
+
+.result-score {
+  margin-top: 18px;
+  font-size: clamp(3rem, 10vw, 5.6rem);
+  font-weight: 900;
+  color: var(--pink-deep);
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.result-item {
+  padding: 16px 14px;
+}
+
+.result-item span {
+  display: block;
+  color: var(--text-soft);
+}
+
+.result-item strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.7rem;
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.94);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes correct-flash {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+    background: linear-gradient(180deg, #e4fff0, #c9f7df);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes wrong-flash {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-3px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .hero-card,
+  .result-card,
+  .game-shell {
+    padding: 22px 16px;
+  }
+
+  .question-text {
+    font-size: clamp(2.7rem, 12vw, 4.8rem);
+  }
+
+  .game-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .secondary-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbar,
+  .home-stats,
+  .result-grid,
+  .options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .option-btn {
+    min-height: 78px;
+  }
+}
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="background-decor background-decor-left" aria-hidden="true"></div>
+    <div class="background-decor background-decor-right" aria-hidden="true"></div>
+
+    <section class="screen screen-home active" id="homeScreen" aria-labelledby="gameTitle">
+      <div class="card hero-card">
+        <p class="hero-tag">一年级口算小游戏</p>
+        <h1 id="gameTitle">米宝口算大挑战</h1>
+        <p class="hero-text">大题目、大按钮、快节奏，适合在 iPad 上点一点就能玩的口算练习。</p>
+
+        <div class="home-actions">
+          <button class="mode-btn mode-btn-yellow" data-mode="timed-60" type="button">1分钟挑战</button>
+          <button class="mode-btn mode-btn-pink" data-mode="timed-120" type="button">2分钟挑战</button>
+          <button class="mode-btn mode-btn-blue" data-mode="practice" type="button">练习模式</button>
+        </div>
+
+        <div class="home-stats">
+          <article class="info-chip">
+            <span class="info-label">最高分</span>
+            <strong id="homeBestScore">0</strong>
+          </article>
+          <article class="info-chip">
+            <span class="info-label">上次成绩</span>
+            <strong id="homeLastScore">暂无</strong>
+          </article>
+        </div>
+
+        <div class="home-note">
+          <p>题型包含：20以内加减法、简单连加、简单连减。</p>
+          <p>答对一题 +10 分，看看你能连对多少题吧。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen screen-game" id="gameScreen" aria-labelledby="questionText">
+      <div class="card game-shell">
+        <header class="topbar">
+          <div class="status-box status-time">
+            <span class="status-label">倒计时</span>
+            <strong id="timerText">60</strong>
+          </div>
+          <div class="status-box">
+            <span class="status-label">分数</span>
+            <strong id="scoreText">0</strong>
+          </div>
+          <div class="status-box">
+            <span class="status-label">连击</span>
+            <strong id="comboText">0</strong>
+          </div>
+        </header>
+
+        <div class="game-mode-banner" id="modeBanner">1分钟挑战</div>
+
+        <div class="feedback-area">
+          <div class="feedback-pill" id="feedbackText">准备好就开始吧</div>
+        </div>
+
+        <main class="question-panel">
+          <div class="question-card" id="questionCard">
+            <p class="question-type" id="questionType">20以内加法</p>
+            <div class="question-text" id="questionText">8 + 5 = ?</div>
+          </div>
+
+          <div class="options-grid" id="optionsGrid">
+            <button class="option-btn" type="button">12</button>
+            <button class="option-btn" type="button">13</button>
+            <button class="option-btn" type="button">14</button>
+            <button class="option-btn" type="button">15</button>
+          </div>
+        </main>
+
+        <footer class="game-footer">
+          <div class="mini-stats">
+            <span>总题数 <strong id="answeredText">0</strong></span>
+            <span>答对 <strong id="correctText">0</strong></span>
+            <span>答错 <strong id="wrongText">0</strong></span>
+          </div>
+          <button class="secondary-btn" id="quitButton" type="button">结束本局</button>
+        </footer>
+      </div>
+    </section>
+
+    <section class="screen screen-result" id="resultScreen" aria-labelledby="resultTitle">
+      <div class="card result-card">
+        <p class="result-tag">本局总结</p>
+        <h2 id="resultTitle">挑战完成</h2>
+        <div class="result-score" id="finalScore">0分</div>
+
+        <div class="result-grid">
+          <article class="result-item">
+            <span>答题总数</span>
+            <strong id="resultAnswered">0</strong>
+          </article>
+          <article class="result-item">
+            <span>答对题数</span>
+            <strong id="resultCorrect">0</strong>
+          </article>
+          <article class="result-item">
+            <span>错误题数</span>
+            <strong id="resultWrong">0</strong>
+          </article>
+          <article class="result-item">
+            <span>正确率</span>
+            <strong id="resultAccuracy">0%</strong>
+          </article>
+          <article class="result-item">
+            <span>本地最高分</span>
+            <strong id="resultBest">0</strong>
+          </article>
+          <article class="result-item">
+            <span>最近一次成绩</span>
+            <strong id="resultLast">0</strong>
+          </article>
+        </div>
+
+        <div class="result-actions">
+          <button class="mode-btn mode-btn-yellow" id="playAgainButton" type="button">再来一局</button>
+          <button class="secondary-btn secondary-btn-large" id="backHomeButton" type="button">返回首页</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+const STORAGE_KEY = "mibao-mental-math-v1";
+const MODE_CONFIG = {
+  "timed-60": { label: "1分钟挑战", duration: 60, timed: true },
+  "timed-120": { label: "2分钟挑战", duration: 120, timed: true },
+  practice: { label: "练习模式", duration: 0, timed: false }
+};
+
+const QUESTION_TYPES = [
+  { key: "add", label: "20以内加法", weight: 4, create: createAdditionQuestion },
+  { key: "subtract", label: "20以内减法", weight: 4, create: createSubtractionQuestion },
+  { key: "chain-add", label: "简单连加", weight: 2, create: createChainAdditionQuestion },
+  { key: "chain-subtract", label: "简单连减", weight: 2, create: createChainSubtractionQuestion }
+];
+
+// 统一保存页面运行时状态，后续扩展更多模式时可以继续往这里加。
+const state = {
+  currentModeKey: "timed-60",
+  timerId: null,
+  questionLock: false,
+  currentQuestion: null,
+  game: createEmptyGameState(),
+  records: loadRecords()
+};
+
+const ui = {
+  screens: {
+    home: document.getElementById("homeScreen"),
+    game: document.getElementById("gameScreen"),
+    result: document.getElementById("resultScreen")
+  },
+  homeBestScore: document.getElementById("homeBestScore"),
+  homeLastScore: document.getElementById("homeLastScore"),
+  modeButtons: document.querySelectorAll("[data-mode]"),
+  timerText: document.getElementById("timerText"),
+  scoreText: document.getElementById("scoreText"),
+  comboText: document.getElementById("comboText"),
+  modeBanner: document.getElementById("modeBanner"),
+  feedbackText: document.getElementById("feedbackText"),
+  questionCard: document.getElementById("questionCard"),
+  questionType: document.getElementById("questionType"),
+  questionText: document.getElementById("questionText"),
+  optionsGrid: document.getElementById("optionsGrid"),
+  answeredText: document.getElementById("answeredText"),
+  correctText: document.getElementById("correctText"),
+  wrongText: document.getElementById("wrongText"),
+  quitButton: document.getElementById("quitButton"),
+  finalScore: document.getElementById("finalScore"),
+  resultAnswered: document.getElementById("resultAnswered"),
+  resultCorrect: document.getElementById("resultCorrect"),
+  resultWrong: document.getElementById("resultWrong"),
+  resultAccuracy: document.getElementById("resultAccuracy"),
+  resultBest: document.getElementById("resultBest"),
+  resultLast: document.getElementById("resultLast"),
+  playAgainButton: document.getElementById("playAgainButton"),
+  backHomeButton: document.getElementById("backHomeButton")
+};
+
+init();
+
+function init() {
+  bindEvents();
+  renderHomeRecords();
+  showScreen("home");
+}
+
+function bindEvents() {
+  ui.modeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      startGame(button.dataset.mode);
+    });
+  });
+
+  ui.quitButton.addEventListener("click", () => {
+    if (state.game.mode.timed) {
+      endGame();
+      return;
+    }
+
+    endGame(true);
+  });
+
+  ui.playAgainButton.addEventListener("click", () => {
+    startGame(state.currentModeKey);
+  });
+
+  ui.backHomeButton.addEventListener("click", goHome);
+}
+
+function startGame(modeKey) {
+  const mode = MODE_CONFIG[modeKey] || MODE_CONFIG["timed-60"];
+  state.currentModeKey = modeKey;
+  state.game = createEmptyGameState();
+  state.game.mode = mode;
+  state.game.timeLeft = mode.duration;
+  state.questionLock = false;
+
+  clearTimer();
+  showScreen("game");
+  renderGameHeader();
+  setFeedback("准备开始，加油哦！", "");
+  nextQuestion();
+
+  if (mode.timed) {
+    startTimer();
+  } else {
+    ui.timerText.textContent = "∞";
+    ui.quitButton.textContent = "结束练习";
+  }
+}
+
+// 倒计时只在挑战模式下运行，时间到会自动结算。
+function startTimer() {
+  ui.quitButton.textContent = "结束本局";
+  clearTimer();
+  renderTimer();
+
+  state.timerId = window.setInterval(() => {
+    state.game.timeLeft -= 1;
+    renderTimer();
+
+    if (state.game.timeLeft <= 0) {
+      clearTimer();
+      endGame();
+    }
+  }, 1000);
+}
+
+function clearTimer() {
+  if (state.timerId) {
+    window.clearInterval(state.timerId);
+    state.timerId = null;
+  }
+}
+
+function nextQuestion() {
+  state.currentQuestion = generateQuestion();
+  state.questionLock = false;
+  renderQuestion();
+}
+
+// 题目生成器采用“题型 + 选项”拆分，方便后续继续增加更多年级内容。
+function generateQuestion() {
+  const questionType = pickQuestionType();
+  const baseQuestion = questionType.create();
+  const options = createOptions(baseQuestion.answer);
+
+  return {
+    id: Date.now() + Math.random(),
+    typeKey: questionType.key,
+    typeLabel: questionType.label,
+    expression: baseQuestion.expression,
+    answer: baseQuestion.answer,
+    options
+  };
+}
+
+function pickQuestionType() {
+  const pool = [];
+
+  QUESTION_TYPES.forEach((type) => {
+    for (let i = 0; i < type.weight; i += 1) {
+      pool.push(type);
+    }
+  });
+
+  return pool[randomInt(0, pool.length - 1)];
+}
+
+function createAdditionQuestion() {
+  const first = randomInt(1, 10);
+  const second = randomInt(1, 10);
+  const adjustedSecond = Math.min(second, 20 - first);
+  return {
+    expression: `${first} + ${adjustedSecond} = ?`,
+    answer: first + adjustedSecond
+  };
+}
+
+function createSubtractionQuestion() {
+  const result = randomInt(0, 15);
+  const subtractor = randomInt(1, Math.max(1, 20 - result));
+  const minuend = result + subtractor;
+  return {
+    expression: `${minuend} - ${subtractor} = ?`,
+    answer: result
+  };
+}
+
+function createChainAdditionQuestion() {
+  const first = randomInt(1, 8);
+  const second = randomInt(1, 6);
+  const maxThird = Math.max(1, 20 - first - second);
+  const third = randomInt(1, Math.min(5, maxThird));
+  return {
+    expression: `${first} + ${second} + ${third} = ?`,
+    answer: first + second + third
+  };
+}
+
+function createChainSubtractionQuestion() {
+  const answer = randomInt(0, 10);
+  const second = randomInt(1, 5);
+  const third = randomInt(1, 5);
+  const first = answer + second + third;
+  return {
+    expression: `${first} - ${second} - ${third} = ?`,
+    answer
+  };
+}
+
+function createOptions(answer) {
+  const options = new Set([answer]);
+  const offsets = [-3, -2, -1, 1, 2, 3, 4, -4];
+
+  while (options.size < 4) {
+    const offset = offsets[randomInt(0, offsets.length - 1)];
+    let candidate = answer + offset;
+
+    if (candidate < 0) {
+      candidate = answer + Math.abs(offset);
+    }
+
+    if (candidate > 20) {
+      candidate = answer - Math.abs(offset);
+    }
+
+    if (candidate === answer || candidate < 0 || candidate > 20) {
+      continue;
+    }
+
+    options.add(candidate);
+  }
+
+  return shuffle(Array.from(options));
+}
+
+function renderQuestion() {
+  const question = state.currentQuestion;
+  ui.questionType.textContent = question.typeLabel;
+  ui.questionText.textContent = question.expression;
+  ui.questionCard.classList.remove("correct-flash", "wrong-flash");
+  renderStats();
+
+  ui.optionsGrid.innerHTML = "";
+  question.options.forEach((optionValue) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "option-btn";
+    button.textContent = optionValue;
+    button.addEventListener("click", () => handleAnswer(optionValue, button));
+    ui.optionsGrid.appendChild(button);
+  });
+}
+
+function handleAnswer(selectedValue, buttonElement) {
+  if (state.questionLock) {
+    return;
+  }
+
+  state.questionLock = true;
+  const isCorrect = selectedValue === state.currentQuestion.answer;
+  const optionButtons = Array.from(ui.optionsGrid.querySelectorAll(".option-btn"));
+
+  state.game.answered += 1;
+
+  if (isCorrect) {
+    state.game.score += 10;
+    state.game.correct += 1;
+    state.game.combo += 1;
+    buttonElement.classList.add("correct");
+    ui.questionCard.classList.add("correct-flash");
+    setFeedback(getSuccessMessage(state.game.combo), state.game.combo >= 3 ? "combo" : "success");
+  } else {
+    state.game.wrong += 1;
+    state.game.combo = 0;
+    buttonElement.classList.add("wrong");
+    ui.questionCard.classList.add("wrong-flash");
+    highlightCorrectAnswer(optionButtons, state.currentQuestion.answer);
+    setFeedback(`再试试，正确答案是 ${state.currentQuestion.answer}`, "error");
+  }
+
+  optionButtons.forEach((button) => {
+    button.disabled = true;
+  });
+
+  renderStats();
+
+  window.setTimeout(() => {
+    if (state.game.mode.timed && state.game.timeLeft <= 0) {
+      return;
+    }
+
+    if (!ui.screens.game.classList.contains("active")) {
+      return;
+    }
+
+    nextQuestion();
+  }, 480);
+}
+
+function highlightCorrectAnswer(buttons, answer) {
+  buttons.forEach((button) => {
+    if (Number(button.textContent) === answer) {
+      button.classList.add("correct");
+    }
+  });
+}
+
+function getSuccessMessage(combo) {
+  if (combo >= 6) {
+    return `超级厉害，已经连对${combo}题！`;
+  }
+
+  if (combo >= 3) {
+    return `太棒了，连对${combo}题！`;
+  }
+
+  const messages = ["答对啦！", "真棒！", "继续加油！", "小脑袋转得真快！"];
+  return messages[randomInt(0, messages.length - 1)];
+}
+
+function setFeedback(message, type) {
+  ui.feedbackText.textContent = message;
+  ui.feedbackText.className = "feedback-pill";
+
+  if (type) {
+    ui.feedbackText.classList.add(type);
+  }
+}
+
+function renderGameHeader() {
+  ui.modeBanner.textContent = state.game.mode.label;
+  renderTimer();
+  renderStats();
+}
+
+function renderTimer() {
+  if (!state.game.mode.timed) {
+    ui.timerText.textContent = "∞";
+    return;
+  }
+
+  ui.timerText.textContent = `${state.game.timeLeft}s`;
+}
+
+function renderStats() {
+  ui.scoreText.textContent = state.game.score;
+  ui.comboText.textContent = state.game.combo;
+  ui.answeredText.textContent = state.game.answered;
+  ui.correctText.textContent = state.game.correct;
+  ui.wrongText.textContent = state.game.wrong;
+}
+
+function endGame(isPracticeManual = false) {
+  clearTimer();
+  saveGameResult();
+  renderResult(isPracticeManual);
+  renderHomeRecords();
+  showScreen("result");
+}
+
+function renderResult(isPracticeManual) {
+  const accuracy = state.game.answered === 0
+    ? 0
+    : Math.round((state.game.correct / state.game.answered) * 100);
+
+  document.getElementById("resultTitle").textContent = isPracticeManual ? "练习结束" : "挑战完成";
+  ui.finalScore.textContent = `${state.game.score}分`;
+  ui.resultAnswered.textContent = state.game.answered;
+  ui.resultCorrect.textContent = state.game.correct;
+  ui.resultWrong.textContent = state.game.wrong;
+  ui.resultAccuracy.textContent = `${accuracy}%`;
+  ui.resultBest.textContent = state.records.bestScore;
+  ui.resultLast.textContent = `${state.records.lastResult.score}分`;
+}
+
+function goHome() {
+  clearTimer();
+  showScreen("home");
+}
+
+function saveGameResult() {
+  const result = {
+    score: state.game.score,
+    answered: state.game.answered,
+    correct: state.game.correct,
+    wrong: state.game.wrong,
+    mode: state.game.mode.label,
+    playedAt: Date.now()
+  };
+
+  state.records.lastResult = result;
+  state.records.bestScore = Math.max(state.records.bestScore, result.score);
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.records));
+}
+
+// 本地只保存最高分和最近一次成绩，保持结构简单，后续可扩展排行榜或错题记录。
+function loadRecords() {
+  const defaults = {
+    bestScore: 0,
+    lastResult: {
+      score: 0,
+      answered: 0,
+      correct: 0,
+      wrong: 0,
+      mode: "未开始",
+      playedAt: 0
+    }
+  };
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return defaults;
+    }
+
+    const parsed = JSON.parse(raw);
+    return {
+      bestScore: Number.isFinite(parsed.bestScore) ? parsed.bestScore : defaults.bestScore,
+      lastResult: {
+        ...defaults.lastResult,
+        ...(parsed.lastResult || {})
+      }
+    };
+  } catch (error) {
+    console.error("读取本地成绩失败：", error);
+    return defaults;
+  }
+}
+
+function renderHomeRecords() {
+  ui.homeBestScore.textContent = state.records.bestScore;
+
+  if (!state.records.lastResult.playedAt) {
+    ui.homeLastScore.textContent = "暂无";
+    return;
+  }
+
+  ui.homeLastScore.textContent = `${state.records.lastResult.score}分`;
+}
+
+function showScreen(name) {
+  Object.values(ui.screens).forEach((screen) => {
+    screen.classList.remove("active");
+  });
+
+  ui.screens[name].classList.add("active");
+}
+
+function createEmptyGameState() {
+  return {
+    mode: MODE_CONFIG["timed-60"],
+    timeLeft: 60,
+    score: 0,
+    combo: 0,
+    answered: 0,
+    correct: 0,
+    wrong: 0
+  };
+}
+
+function shuffle(list) {
+  const cloned = [...list];
+
+  for (let index = cloned.length - 1; index > 0; index -= 1) {
+    const target = randomInt(0, index);
+    [cloned[index], cloned[target]] = [cloned[target], cloned[index]];
+  }
+
+  return cloned;
+}
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+  </script>
+</body>
+</html>

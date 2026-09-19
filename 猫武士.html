@@ -1,0 +1,2616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>猫武士 - 猫族营地物语</title>
+  <style>
+    :root {
+      --leaf: #4f7d4f;
+      --leaf-dark: #2f5c3f;
+      --moss: #dfe8c8;
+      --cream: #fff8e9;
+      --paper: #fffaf0;
+      --bark: #6a4a2f;
+      --river: #6ea6a5;
+      --sun: #f0b45b;
+      --rose: #d97868;
+      --ink: #2f2a22;
+      --muted: #6c6659;
+      --line: rgba(82, 64, 41, 0.18);
+      --shadow: 0 12px 28px rgba(41, 58, 30, 0.14);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: #e7efd5;
+    }
+
+    body {
+      min-height: 100%;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 10%, rgba(255, 247, 211, 0.92) 0 10%, transparent 25%),
+        linear-gradient(145deg, rgba(101, 141, 83, 0.24), transparent 36%),
+        linear-gradient(180deg, #edf4da 0%, #d8e6c2 55%, #c7d8ac 100%);
+      letter-spacing: 0;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      min-height: 48px;
+      border: 0;
+      border-radius: var(--radius);
+      padding: 12px 18px;
+      color: #fffef7;
+      background: var(--leaf);
+      box-shadow: 0 4px 0 rgba(42, 82, 54, 0.38);
+      cursor: pointer;
+      touch-action: manipulation;
+      font-weight: 700;
+    }
+
+    button:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 rgba(42, 82, 54, 0.38);
+    }
+
+    button.secondary {
+      color: var(--leaf-dark);
+      background: #eff5df;
+      box-shadow: 0 4px 0 rgba(96, 122, 72, 0.25);
+    }
+
+    button.warning {
+      background: var(--rose);
+      box-shadow: 0 4px 0 rgba(146, 69, 57, 0.38);
+    }
+
+    button.gold {
+      color: #3d2c16;
+      background: var(--sun);
+      box-shadow: 0 4px 0 rgba(143, 90, 36, 0.34);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    input {
+      width: 100%;
+      min-height: 48px;
+      border: 2px solid rgba(79, 125, 79, 0.25);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      background: #fffdf7;
+      color: var(--ink);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--leaf);
+      box-shadow: 0 0 0 4px rgba(79, 125, 79, 0.12);
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 18px clamp(12px, 3vw, 28px) 32px;
+    }
+
+    .top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 4px;
+      font-size: clamp(28px, 4vw, 46px);
+      color: var(--leaf-dark);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--bark);
+      font-weight: 650;
+    }
+
+    .forest-mark {
+      width: 160px;
+      height: 92px;
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.28), transparent),
+        linear-gradient(135deg, #87aa72, #4d7a55 48%, #815f3d);
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .forest-mark::before,
+    .forest-mark::after {
+      content: "🌲 🌿 🐾";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      text-align: center;
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .forest-mark::before {
+      top: 15px;
+    }
+
+    .forest-mark::after {
+      bottom: 13px;
+      content: "🌙 🐱 🍃";
+      font-size: 25px;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .start-panel,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 240, 0.88);
+      box-shadow: var(--shadow);
+    }
+
+    .start-panel {
+      padding: clamp(16px, 4vw, 28px);
+    }
+
+    .start-grid {
+      display: grid;
+      grid-template-columns: minmax(250px, 0.8fr) 1.2fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .camp-options {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .camp-card,
+    .cat-card {
+      border: 2px solid transparent;
+      border-radius: var(--radius);
+      background: #fffdf6;
+      padding: 14px;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(62, 70, 43, 0.08);
+      touch-action: manipulation;
+    }
+
+    .camp-card.selected,
+    .cat-card.selected {
+      border-color: var(--leaf);
+      background: #f0f6df;
+      box-shadow: 0 0 0 4px rgba(79, 125, 79, 0.12);
+    }
+
+    .camp-card h3 {
+      margin-bottom: 6px;
+      color: var(--leaf-dark);
+    }
+
+    .camp-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: minmax(290px, 360px) 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .left-stack,
+    .main-stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      padding: 14px;
+    }
+
+    .panel h2 {
+      margin-bottom: 12px;
+      color: var(--leaf-dark);
+      font-size: 21px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      min-height: 72px;
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fffdf6;
+      border: 1px solid var(--line);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 20px;
+      color: var(--ink);
+      overflow-wrap: anywhere;
+    }
+
+    .relations {
+      display: grid;
+      gap: 10px;
+    }
+
+    .relation-row {
+      display: grid;
+      grid-template-columns: 76px 1fr 56px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .bar {
+      height: 14px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e1dccd;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--rose), var(--sun), var(--leaf));
+      width: 50%;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .actions button:first-child {
+      grid-column: span 2;
+    }
+
+    .leader-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .leader-actions button {
+      min-height: 44px;
+      padding: 10px 12px;
+    }
+
+    .mode-box,
+    .story-box {
+      display: none;
+      border: 2px dashed rgba(79, 125, 79, 0.36);
+      border-radius: var(--radius);
+      padding: 14px;
+      background: #f7f3df;
+    }
+
+    .mode-box.active,
+    .story-box.active {
+      display: block;
+    }
+
+    .mode-actions,
+    .story-actions,
+    .detail-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .hint {
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 0;
+    }
+
+    .time-sky {
+      min-height: 132px;
+      margin-bottom: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      box-shadow: var(--shadow);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.44), transparent),
+        linear-gradient(135deg, #88c9e8, #f8e5a6 72%);
+    }
+
+    .time-sky.night {
+      background:
+        radial-gradient(circle at 78% 22%, rgba(255, 255, 255, 0.85) 0 1px, transparent 2px),
+        radial-gradient(circle at 68% 38%, rgba(255, 255, 255, 0.74) 0 1px, transparent 2px),
+        radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.75) 0 1px, transparent 2px),
+        linear-gradient(135deg, #233855, #4b647c 58%, #8a7a68);
+      color: #fffaf0;
+    }
+
+    .sky-orb {
+      position: absolute;
+      right: clamp(22px, 8vw, 88px);
+      top: 22px;
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: #ffd36a;
+      box-shadow: 0 0 28px rgba(255, 211, 106, 0.55);
+    }
+
+    .time-sky.night .sky-orb {
+      background: #fff3bd;
+      box-shadow: inset -15px 2px 0 #d8d5ca, 0 0 22px rgba(255, 243, 189, 0.32);
+    }
+
+    .sky-ground {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 42px;
+      background:
+        radial-gradient(circle at 12% 100%, #4f7d4f 0 38px, transparent 39px),
+        radial-gradient(circle at 32% 100%, #6a8f50 0 34px, transparent 35px),
+        radial-gradient(circle at 78% 100%, #4f7d4f 0 44px, transparent 45px),
+        linear-gradient(180deg, transparent, rgba(47, 92, 63, 0.8));
+    }
+
+    .sky-text {
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      display: grid;
+      gap: 5px;
+    }
+
+    .sky-text strong {
+      font-size: clamp(23px, 4vw, 34px);
+      color: var(--leaf-dark);
+    }
+
+    .time-sky.night .sky-text strong,
+    .time-sky.night .sky-text span {
+      color: #fffaf0;
+    }
+
+    .sky-text span {
+      color: var(--bark);
+      font-weight: 750;
+    }
+
+    .story-notice {
+      display: none;
+      width: fit-content;
+      max-width: 100%;
+      margin-bottom: 10px;
+      border-radius: 999px;
+      padding: 7px 11px;
+      background: #fff1c8;
+      color: #654418;
+      font-size: 14px;
+      font-weight: 850;
+      border: 1px solid rgba(143, 90, 36, 0.2);
+    }
+
+    .story-notice.active {
+      display: inline-flex;
+    }
+
+    .territory-map {
+      position: relative;
+      min-height: 310px;
+      border: 1px solid rgba(79, 125, 79, 0.24);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 48%, rgba(255, 248, 224, 0.95) 0 12%, transparent 13%),
+        radial-gradient(circle at 22% 24%, rgba(111, 166, 165, 0.34) 0 14%, transparent 15%),
+        radial-gradient(circle at 82% 22%, rgba(240, 180, 91, 0.28) 0 14%, transparent 15%),
+        radial-gradient(circle at 78% 78%, rgba(79, 125, 79, 0.35) 0 16%, transparent 17%),
+        linear-gradient(135deg, #dce9c7, #f3efd4 48%, #c7d8ac);
+    }
+
+    .map-label {
+      position: absolute;
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: rgba(255, 253, 246, 0.88);
+      border: 1px solid var(--line);
+      color: var(--bark);
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 6px 14px rgba(62, 70, 43, 0.08);
+    }
+
+    .map-label.camp {
+      left: 50%;
+      top: 44%;
+      transform: translate(-50%, -50%);
+    }
+
+    .map-label.hunt {
+      left: 8%;
+      top: 12%;
+    }
+
+    .map-label.patrol {
+      right: 8%;
+      top: 14%;
+    }
+
+    .map-label.border {
+      right: 8%;
+      bottom: 12%;
+    }
+
+    .territory-cats {
+      position: absolute;
+      inset: 46px 12px 12px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .map-zone {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      justify-content: flex-end;
+      min-width: 0;
+    }
+
+    .map-zone h3 {
+      margin: 0;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: rgba(255, 253, 246, 0.86);
+      color: var(--leaf-dark);
+      font-size: 13px;
+    }
+
+    .map-cat {
+      width: fit-content;
+      max-width: 100%;
+      border-radius: 999px;
+      padding: 6px 9px;
+      background: rgba(255, 253, 246, 0.92);
+      border: 1px solid rgba(82, 64, 41, 0.16);
+      box-shadow: 0 5px 11px rgba(62, 70, 43, 0.08);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .map-cat.away {
+      background: #fff1c8;
+    }
+
+    .activity-note {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: #dcebdc;
+      color: var(--leaf-dark);
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .cats-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      min-height: 40px;
+      padding: 9px 12px;
+      color: var(--leaf-dark);
+      background: #edf4df;
+      box-shadow: none;
+      border: 1px solid rgba(79, 125, 79, 0.18);
+    }
+
+    .tab.active {
+      color: #fffef7;
+      background: var(--leaf);
+    }
+
+    .cat-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 12px;
+    }
+
+    .cat-card {
+      min-height: 210px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .cat-title {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      align-items: start;
+    }
+
+    .cat-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--leaf-dark);
+      overflow-wrap: anywhere;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border-radius: 999px;
+      padding: 4px 9px;
+      color: #3d331f;
+      background: #efe3bd;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .cat-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .meter {
+      height: 9px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #e4dcc8;
+    }
+
+    .meter span {
+      display: block;
+      height: 100%;
+      width: 50%;
+      background: var(--leaf);
+    }
+
+    .detail-panel {
+      display: none;
+      margin-top: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
+    .detail-panel.active {
+      display: block;
+    }
+
+    .log-list {
+      display: grid;
+      gap: 9px;
+      max-height: 460px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .log-item {
+      border-left: 5px solid var(--leaf);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      background: #fffdf6;
+      line-height: 1.5;
+    }
+
+    .log-item strong {
+      color: var(--leaf-dark);
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 18px;
+      text-align: center;
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      background: #fffdf6;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      z-index: 10;
+      transform: translateX(-50%);
+      width: min(560px, calc(100vw - 24px));
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      background: rgba(47, 92, 63, 0.96);
+      color: #fffef7;
+      box-shadow: var(--shadow);
+      display: none;
+      text-align: center;
+      font-weight: 750;
+    }
+
+    .toast.active {
+      display: block;
+    }
+
+    @media (max-width: 860px) {
+      .top,
+      .start-grid,
+      .game-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .forest-mark {
+        display: none;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .camp-options,
+      .status-grid,
+      .actions,
+      .cat-meta,
+      .territory-cats {
+        grid-template-columns: 1fr;
+      }
+
+      .actions button:first-child {
+        grid-column: auto;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .mode-actions,
+      .story-actions,
+      .detail-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div>
+        <h1>🐾《猫族营地物语》</h1>
+        <p class="subtitle">原创森林猫族文字经营养成小游戏</p>
+      </div>
+      <div class="forest-mark" aria-hidden="true"></div>
+    </header>
+
+    <section id="startScreen" class="screen active">
+      <div class="start-panel">
+        <div class="start-grid">
+          <div>
+            <h2>建立你的猫族</h2>
+            <p class="hint">输入族群名字，选择第一座营地。系统会送给你几只初始猫，故事从今天开始。</p>
+            <label for="clanName"><strong>族群名字</strong></label>
+            <input id="clanName" maxlength="12" value="晨叶族" aria-label="族群名字">
+            <div style="height: 14px;"></div>
+            <button id="startBtn" class="gold">开始守护营地</button>
+          </div>
+          <div>
+            <h2>选择营地</h2>
+            <div id="campOptions" class="camp-options"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen">
+      <section id="timeSky" class="time-sky" aria-label="白天黑夜图">
+        <div id="skyOrb" class="sky-orb" aria-hidden="true"></div>
+        <div class="sky-ground" aria-hidden="true"></div>
+        <div class="sky-text">
+          <strong id="skyTitle">清晨</strong>
+          <span id="skySubtitle">太阳照进营地</span>
+        </div>
+      </section>
+
+      <div class="game-grid">
+        <aside class="left-stack">
+          <section class="panel">
+            <h2>🌲 族群状态</h2>
+            <div class="status-grid">
+              <div class="stat"><span>族群</span><strong id="statClan">-</strong></div>
+              <div class="stat"><span>当前日期</span><strong id="statTurn">-</strong></div>
+              <div class="stat"><span>食物</span><strong id="statFood">-</strong></div>
+              <div class="stat"><span>猫的数量</span><strong id="statCats">-</strong></div>
+              <div class="stat"><span>营地</span><strong id="statCamp">-</strong></div>
+              <div class="stat"><span>猎物地点</span><strong id="statBonus">-</strong></div>
+              <div class="stat"><span>时间</span><strong id="statTime">-</strong></div>
+              <div class="stat"><span>反派压力</span><strong id="statThreat">-</strong></div>
+              <div class="stat"><span>蜘蛛丝</span><strong id="statCobweb">-</strong></div>
+              <div class="stat"><span>金盏花</span><strong id="statMarigold">-</strong></div>
+              <div class="stat"><span>猫薄荷</span><strong id="statCatmint">-</strong></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>🍃 其他族群关系</h2>
+            <div id="relations" class="relations"></div>
+          </section>
+
+          <section class="panel">
+            <h2>🌿 巫医草药库存</h2>
+            <div id="herbInventory" class="relations"></div>
+          </section>
+
+          <section class="panel">
+            <h2>🌙 操作</h2>
+            <div class="actions">
+              <button id="nextTurnBtn" class="gold">等待片刻</button>
+              <button id="huntBtn">组织狩猎队</button>
+              <button id="patrolBtn">组织巡逻队</button>
+              <button id="trainBtn">训练学徒</button>
+              <button id="showCatsBtn" class="secondary">查看全部猫</button>
+              <button id="showLogBtn" class="secondary">查看事件日志</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>⭐ 族长行动</h2>
+            <p id="leaderActionHint" class="hint" style="margin-bottom: 10px;">选择你现在要做的事。</p>
+            <div id="leaderActions" class="leader-actions"></div>
+          </section>
+        </aside>
+
+        <div class="main-stack">
+          <section id="logPanel" class="panel">
+            <h2>📜 事件日志</h2>
+            <div id="logList" class="log-list"></div>
+          </section>
+
+          <section id="storyBox" class="story-box">
+            <h2 id="storyTitle">随机剧情</h2>
+            <div id="storyNotice" class="story-notice"></div>
+            <p id="storyText" class="hint"></p>
+            <div id="storyActions" class="story-actions"></div>
+          </section>
+
+          <section id="modeBox" class="mode-box">
+            <h2 id="modeTitle">选择队伍</h2>
+            <p id="modeHint" class="hint"></p>
+            <div id="huntTerritoryChoice" class="mode-actions" style="display: none; margin-top: 10px;"></div>
+            <div class="mode-actions">
+              <button id="confirmModeBtn">开始</button>
+              <button id="cancelModeBtn" class="secondary">取消选择</button>
+            </div>
+          </section>
+
+          <section id="territoryPanel" class="panel">
+            <h2>🗺️ 族群领地状态</h2>
+            <div class="territory-map" aria-label="族群领地状态图">
+              <span class="map-label camp">营地</span>
+              <span class="map-label hunt">猎场</span>
+              <span class="map-label patrol">巡逻路线</span>
+              <span class="map-label border">边界</span>
+              <div id="territoryCats" class="territory-cats"></div>
+            </div>
+          </section>
+
+          <section id="catsPanel" class="panel">
+            <div class="cats-toolbar">
+              <h2 style="margin: 0;">🐱 猫列表</h2>
+              <div class="tabs" aria-label="猫列表筛选">
+                <button class="tab active" data-filter="全部">全部</button>
+                <button class="tab" data-filter="幼崽">幼崽</button>
+                <button class="tab" data-filter="学徒">学徒</button>
+                <button class="tab" data-filter="武士">武士</button>
+                <button class="tab" data-filter="巫医">巫医</button>
+              </div>
+            </div>
+            <div id="catList" class="cat-list"></div>
+            <div id="catDetail" class="detail-panel"></div>
+          </section>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // 第一版单文件原型：所有游戏数据都存在浏览器内存中，刷新页面会重新开始。
+    const camps = {
+      forest: {
+        name: "森林营地",
+        icon: "🌲",
+        desc: "猎物较多，但偶尔会遇到狐狸脚印。",
+        huntBonus: 1.18,
+        foodBonus: 1,
+        patrolBonus: 0,
+        conflictBonus: 0,
+        risk: "fox"
+      },
+      river: {
+        name: "河边营地",
+        icon: "🌊",
+        desc: "可以捕鱼，但每到寒冷回合食物会变少。",
+        huntBonus: 1.05,
+        foodBonus: 2,
+        patrolBonus: 0,
+        conflictBonus: 0,
+        risk: "winter"
+      },
+      cave: {
+        name: "山洞营地",
+        icon: "🪨",
+        desc: "防御较强，生病和冲突损失更少，但猎物较少。",
+        huntBonus: 0.88,
+        foodBonus: 0,
+        patrolBonus: 0,
+        conflictBonus: -8,
+        risk: "lowPrey"
+      },
+      grass: {
+        name: "草原营地",
+        icon: "🌾",
+        desc: "视野开阔，巡逻效果好，但容易和其他族群摩擦。",
+        huntBonus: 1,
+        foodBonus: 0,
+        patrolBonus: 12,
+        conflictBonus: 9,
+        risk: "border"
+      }
+    };
+
+    const personalities = ["勇敢", "温柔", "谨慎", "活泼", "固执", "聪明", "胆小", "忠诚", "好奇", "沉稳"];
+    const roots = ["白", "灰", "松", "溪", "银", "云", "叶", "栗", "风", "月", "晨", "雾", "花", "石", "雨", "橡", "青", "霜", "金", "竹"];
+    const suffixes = ["尾", "风", "叶", "月", "心", "耳", "泉", "羽", "影", "须", "步", "溪", "光", "松", "花", "云", "莓"];
+    const preyByCamp = {
+      forest: ["松鼠", "田鼠", "麻雀", "兔子", "小鸟", "蜥蜴"],
+      river: ["鱼", "水鼠", "麻雀", "小鸟", "青蛙", "兔子"],
+      cave: ["田鼠", "蜥蜴", "麻雀", "兔子"],
+      grass: ["兔子", "田鼠", "麻雀", "小鸟", "蜥蜴"]
+    };
+    const clans = ["松林族", "溪水族", "岩爪族"];
+    const timeSlots = ["清晨", "午后", "黄昏", "月夜"];
+    const villain = {
+      name: "鸦影",
+      group: "暗藤帮",
+      desc: "一只想抢走猎场的流浪猫首领"
+    };
+
+    let state = {
+      started: false,
+      clanName: "",
+      campKey: "forest",
+      turn: 1,
+      food: 18,
+      cats: [],
+      logs: [],
+      relations: { "松林族": 52, "溪水族": 50, "岩爪族": 48 },
+      selectedMode: null,
+      selectedCats: new Set(),
+      activeFilter: "全部",
+      activeStory: null,
+      discoveredPreySites: 0,
+      expeditions: [],
+      timeIndex: 0,
+      threat: 18,
+      huntTerritory: "own",
+      herbs: { cobweb: 3, marigold: 2, catmint: 1 }
+    };
+
+    const els = {
+      startScreen: document.getElementById("startScreen"),
+      gameScreen: document.getElementById("gameScreen"),
+      campOptions: document.getElementById("campOptions"),
+      clanName: document.getElementById("clanName"),
+      startBtn: document.getElementById("startBtn"),
+      statClan: document.getElementById("statClan"),
+      statTurn: document.getElementById("statTurn"),
+      statFood: document.getElementById("statFood"),
+      statCats: document.getElementById("statCats"),
+      statCamp: document.getElementById("statCamp"),
+      statBonus: document.getElementById("statBonus"),
+      statTime: document.getElementById("statTime"),
+      statThreat: document.getElementById("statThreat"),
+      statCobweb: document.getElementById("statCobweb"),
+      statMarigold: document.getElementById("statMarigold"),
+      statCatmint: document.getElementById("statCatmint"),
+      herbInventory: document.getElementById("herbInventory"),
+      timeSky: document.getElementById("timeSky"),
+      skyTitle: document.getElementById("skyTitle"),
+      skySubtitle: document.getElementById("skySubtitle"),
+      relations: document.getElementById("relations"),
+      nextTurnBtn: document.getElementById("nextTurnBtn"),
+      huntBtn: document.getElementById("huntBtn"),
+      patrolBtn: document.getElementById("patrolBtn"),
+      trainBtn: document.getElementById("trainBtn"),
+      showCatsBtn: document.getElementById("showCatsBtn"),
+      showLogBtn: document.getElementById("showLogBtn"),
+      leaderActions: document.getElementById("leaderActions"),
+      leaderActionHint: document.getElementById("leaderActionHint"),
+      modeBox: document.getElementById("modeBox"),
+      modeTitle: document.getElementById("modeTitle"),
+      modeHint: document.getElementById("modeHint"),
+      huntTerritoryChoice: document.getElementById("huntTerritoryChoice"),
+      confirmModeBtn: document.getElementById("confirmModeBtn"),
+      cancelModeBtn: document.getElementById("cancelModeBtn"),
+      catList: document.getElementById("catList"),
+      catDetail: document.getElementById("catDetail"),
+      territoryCats: document.getElementById("territoryCats"),
+      logList: document.getElementById("logList"),
+      catsPanel: document.getElementById("catsPanel"),
+      logPanel: document.getElementById("logPanel"),
+      storyBox: document.getElementById("storyBox"),
+      storyTitle: document.getElementById("storyTitle"),
+      storyNotice: document.getElementById("storyNotice"),
+      storyText: document.getElementById("storyText"),
+      storyActions: document.getElementById("storyActions"),
+      toast: document.getElementById("toast")
+    };
+
+    function rand(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function pick(list) {
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function makeName(stage = "adult", root = pick(roots)) {
+      if (stage === "幼崽") {
+        return Math.random() < 0.5 ? `小${root}` : `${root}崽`;
+      }
+      if (stage === "学徒") {
+        return `${root}爪`;
+      }
+      if (stage === "族长") {
+        return `${root}星`;
+      }
+      return root + pick(suffixes);
+    }
+
+    function nameRootFrom(name) {
+      if (name.startsWith("小") && name.length > 1) return name.slice(1, 2);
+      if (name.endsWith("崽") && name.length > 1) return name.slice(0, 1);
+      if (name.endsWith("爪") && name.length > 1) return name.slice(0, 1);
+      if (name.endsWith("星") && name.length > 1) return name.slice(0, 1);
+      return name.slice(0, 1) || pick(roots);
+    }
+
+    function createCat({ name, gender, stage, role, age = 0, mateId = null }) {
+      const root = name ? nameRootFrom(name) : pick(roots);
+      return {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+        name: name || makeName(role === "族长" ? "族长" : stage, root),
+        nameRoot: root,
+        gender: gender || pick(["公", "母"]),
+        stage,
+        role,
+        age,
+        personality: pick(personalities),
+        health: rand(78, 100),
+        hunting: stage === "幼崽" ? rand(3, 15) : stage === "学徒" ? rand(28, 58) : rand(48, 88),
+        fighting: stage === "幼崽" ? rand(3, 15) : stage === "学徒" ? rand(26, 56) : rand(45, 86),
+        mateId,
+        activity: null,
+        affection: rand(42, 68)
+      };
+    }
+
+    function setupCampOptions() {
+      els.campOptions.innerHTML = "";
+      Object.entries(camps).forEach(([key, camp]) => {
+        const card = document.createElement("div");
+        card.className = "camp-card" + (state.campKey === key ? " selected" : "");
+        card.innerHTML = `<h3>${camp.icon} ${camp.name}</h3><p>${camp.desc}</p>`;
+        card.addEventListener("click", () => {
+          state.campKey = key;
+          setupCampOptions();
+        });
+        els.campOptions.appendChild(card);
+      });
+    }
+
+    function initialCats() {
+      const leader = createCat({ name: makeName("族长"), gender: pick(["公", "母"]), stage: "武士", role: "族长", age: 18 });
+      const deputy = createCat({ name: makeName(), stage: "武士", role: "副族长", age: 14 });
+      const healer = createCat({ name: makeName(), stage: "武士", role: "巫医", age: 16 });
+      const warrior1 = createCat({ name: makeName(), stage: "武士", role: "武士", age: 10 });
+      const warrior2 = createCat({ name: makeName(), stage: "武士", role: "武士", age: 9 });
+      const apprentice = createCat({ name: makeName("学徒"), stage: "学徒", role: "学徒", age: 4 });
+      const kit = createCat({ name: makeName("幼崽"), stage: "幼崽", role: "幼崽", age: 1 });
+      return [leader, deputy, healer, warrior1, warrior2, apprentice, kit];
+    }
+
+    function log(message, type = "营地") {
+      state.logs.unshift({
+        turn: state.turn,
+        type,
+        message
+      });
+      state.logs = state.logs.slice(0, 12);
+      renderLogs();
+    }
+
+    function toast(text) {
+      els.toast.textContent = text;
+      els.toast.classList.add("active");
+      window.clearTimeout(toast.timer);
+      toast.timer = window.setTimeout(() => els.toast.classList.remove("active"), 1800);
+    }
+
+    function startGame() {
+      const name = els.clanName.value.trim() || "晨叶族";
+      state.started = true;
+      state.clanName = name.slice(0, 12);
+      state.turn = 1;
+      state.food = camps[state.campKey].foodBonus + 18;
+      state.cats = initialCats();
+      state.logs = [];
+      state.relations = { "松林族": 52, "溪水族": 50, "岩爪族": 48 };
+      state.discoveredPreySites = 0;
+      state.expeditions = [];
+      state.timeIndex = 0;
+      state.threat = 18;
+      state.huntTerritory = "own";
+      state.herbs = { cobweb: 3, marigold: 2, catmint: 1 };
+      els.startScreen.classList.remove("active");
+      els.gameScreen.classList.add("active");
+      log(`${state.clanName}在${camps[state.campKey].name}安顿下来。第一缕阳光照进营地，族猫们围坐在一起等待你的安排。`);
+      log(`${villain.group}的${villain.name}也在远处活动。它不会一直攻击，但会偶尔给族群带来麻烦。`, "反派");
+      log(`初始猫已经加入族群：${state.cats.map(cat => cat.name).join("、")}。`);
+      renderAll();
+    }
+
+    function relationLabel(value) {
+      if (value >= 70) return "友好";
+      if (value >= 42) return "普通";
+      if (value >= 22) return "紧张";
+      return "敌对";
+    }
+
+    function relationColor(value) {
+      if (value >= 70) return "#4f7d4f";
+      if (value >= 42) return "#d79a3d";
+      if (value >= 22) return "#d97868";
+      return "#a9473a";
+    }
+
+    function changeRelation(clan, amount) {
+      state.relations[clan] = clamp(state.relations[clan] + amount, 0, 100);
+    }
+
+    function changeAffection(cat, amount) {
+      if (!cat) return;
+      cat.affection = clamp((cat.affection ?? 50) + amount, 0, 100);
+    }
+
+    function affectionLabel(value) {
+      if (value >= 78) return "信任";
+      if (value >= 55) return "亲近";
+      if (value >= 32) return "普通";
+      return "疏远";
+    }
+
+    function activityText(cat) {
+      if (!cat.activity) return "在营地";
+      const task = cat.activity.type === "hunt" ? "狩猎中" : "巡逻中";
+      return `${task}，${cat.activity.remaining} 回合后回来`;
+    }
+
+    function catsInCamp() {
+      return state.cats.filter(cat => !cat.activity);
+    }
+
+    function renderStatus() {
+      const camp = camps[state.campKey];
+      els.statClan.textContent = state.clanName;
+      els.statTurn.textContent = `第 ${state.turn} 天`;
+      els.statFood.textContent = `${state.food} 份`;
+      els.statCats.textContent = `${state.cats.length} 只`;
+      els.statCamp.textContent = `${camp.icon} ${camp.name}`;
+      els.statBonus.textContent = state.discoveredPreySites ? `+${state.discoveredPreySites} 处` : "暂无";
+      els.statTime.textContent = timeSlots[state.timeIndex];
+      els.statThreat.textContent = `${villain.name} ${state.threat}`;
+      els.statCobweb.textContent = `${state.herbs.cobweb} 份`;
+      els.statMarigold.textContent = `${state.herbs.marigold} 份`;
+      els.statCatmint.textContent = `${state.herbs.catmint} 份`;
+    }
+
+    function renderTimeSky() {
+      const slot = timeSlots[state.timeIndex];
+      const isNight = slot === "月夜";
+      const subtitles = {
+        "清晨": "太阳照进营地，族猫准备吃饭",
+        "午后": "阳光洒在苔藓窝和猎物堆上",
+        "黄昏": "太阳落向树梢，边界需要留意",
+        "月夜": "月亮升起，营地慢慢安静"
+      };
+      els.timeSky.classList.toggle("night", isNight);
+      els.skyTitle.textContent = isNight ? "月夜" : slot;
+      els.skySubtitle.textContent = subtitles[slot];
+    }
+
+    function renderRelations() {
+      els.relations.innerHTML = "";
+      clans.forEach(clan => {
+        const value = state.relations[clan];
+        const row = document.createElement("div");
+        row.className = "relation-row";
+        row.innerHTML = `
+          <strong>${clan}</strong>
+          <div class="bar" aria-label="${clan}关系值${value}">
+            <div class="bar-fill" style="width:${value}%; background:${relationColor(value)};"></div>
+          </div>
+          <span>${relationLabel(value)}</span>
+        `;
+        els.relations.appendChild(row);
+      });
+    }
+
+    function renderHerbs() {
+      const herbs = [
+        { name: "蜘蛛丝", value: state.herbs.cobweb, use: "处理伤口" },
+        { name: "金盏花", value: state.herbs.marigold, use: "照顾伤猫" },
+        { name: "猫薄荷", value: state.herbs.catmint, use: "照顾生病的猫" }
+      ];
+      els.herbInventory.innerHTML = herbs.map(herb => `
+        <div class="relation-row">
+          <strong>${herb.name}</strong>
+          <div class="bar" aria-label="${herb.name}${herb.value}份">
+            <div class="bar-fill" style="width:${clamp(herb.value * 18, 8, 100)}%; background:${herb.value > 0 ? "var(--leaf)" : "var(--rose)"};"></div>
+          </div>
+          <span>${herb.value}份</span>
+        </div>
+        <p class="hint" style="margin: -4px 0 4px;">${herb.use}</p>
+      `).join("");
+    }
+
+    function canJoinAction(cat) {
+      if (state.selectedMode === "talk") {
+        return !cat.activity && cat.health > 0;
+      }
+      if (state.selectedMode === "train") {
+        return !cat.activity && cat.health > 25 && (cat.role === "学徒" || ["族长", "副族长", "武士"].includes(cat.role));
+      }
+      return !cat.activity && ["族长", "副族长", "巫医", "武士", "学徒"].includes(cat.role) && cat.health > 25;
+    }
+
+    function renderTerritory() {
+      const groups = [
+        { title: "营地里", icon: "🏕️", cats: state.cats.filter(cat => !cat.activity), cls: "" },
+        { title: "狩猎中", icon: "🍖", cats: state.cats.filter(cat => cat.activity?.type === "hunt"), cls: "away" },
+        { title: "巡逻中", icon: "🐾", cats: state.cats.filter(cat => cat.activity?.type === "patrol"), cls: "away" }
+      ];
+      els.territoryCats.innerHTML = groups.map(group => `
+        <div class="map-zone">
+          <h3>${group.icon} ${group.title}</h3>
+          ${group.cats.length ? group.cats.map(cat => `
+            <span class="map-cat ${group.cls}" title="${activityText(cat)}">${cat.name}${cat.activity ? ` · ${cat.activity.remaining}` : ""}</span>
+          `).join("") : `<span class="map-cat">暂无</span>`}
+        </div>
+      `).join("");
+    }
+
+    function renderCats() {
+      const cats = state.cats.filter(cat => state.activeFilter === "全部" || cat.stage === state.activeFilter || cat.role === state.activeFilter);
+      els.catList.innerHTML = "";
+
+      if (!cats.length) {
+        els.catList.innerHTML = `<div class="empty">没有符合筛选的猫。</div>`;
+        return;
+      }
+
+      cats.forEach(cat => {
+        const card = document.createElement("article");
+        const isSelected = state.selectedCats.has(cat.id);
+        const selectable = state.selectedMode && canJoinAction(cat);
+        card.className = "cat-card" + (isSelected ? " selected" : "");
+        card.innerHTML = `
+          <div class="cat-title">
+            <div class="cat-name">🐱 ${cat.name}</div>
+            <span class="badge">${cat.role}</span>
+          </div>
+          <div class="cat-meta">
+            <span>性别：${cat.gender}</span>
+            <span>阶段：${cat.stage}</span>
+            <span>性格：${cat.personality}</span>
+            <span>年龄：${cat.age}</span>
+          </div>
+          <span class="activity-note">${activityText(cat)}</span>
+          <div>好感 ${cat.affection} · ${affectionLabel(cat.affection)}<div class="meter"><span style="width:${cat.affection}%; background:#d79a3d;"></span></div></div>
+          <div>健康 ${cat.health}<div class="meter"><span style="width:${cat.health}%; background:${cat.health > 55 ? "var(--leaf)" : "var(--rose)"};"></span></div></div>
+          <div>狩猎 ${cat.hunting}<div class="meter"><span style="width:${cat.hunting}%; background:var(--river);"></span></div></div>
+          <div>战斗 ${cat.fighting}<div class="meter"><span style="width:${cat.fighting}%; background:var(--sun);"></span></div></div>
+          ${selectable ? `<span class="badge">${isSelected ? "已加入队伍" : "点击加入队伍"}</span>` : ""}
+        `;
+        card.addEventListener("click", () => handleCatClick(cat));
+        els.catList.appendChild(card);
+      });
+    }
+
+    function handleCatClick(cat) {
+      if (state.selectedMode) {
+        if (!canJoinAction(cat)) {
+          toast(cat.activity ? "这只猫还在外面，回来后才能再安排任务。" : "这只猫现在不适合参加这个任务。");
+          return;
+        }
+        if (state.selectedCats.has(cat.id)) {
+          state.selectedCats.delete(cat.id);
+        } else {
+          if (state.selectedMode === "talk") {
+            state.selectedCats.clear();
+          }
+          if (state.selectedMode === "train") {
+            const sameKind = cat.role === "学徒"
+              ? selectedCatList().filter(item => item.role === "学徒")
+              : selectedCatList().filter(item => ["族长", "副族长", "武士"].includes(item.role));
+            sameKind.forEach(item => state.selectedCats.delete(item.id));
+          }
+          state.selectedCats.add(cat.id);
+        }
+        updateModeHint();
+        renderCats();
+        return;
+      }
+      showCatDetail(cat);
+    }
+
+    function showCatDetail(cat) {
+      const mate = state.cats.find(item => item.id === cat.mateId);
+      els.catDetail.classList.add("active");
+      els.catDetail.innerHTML = `
+        <h2>🐾 ${cat.name} 的详情</h2>
+        <p class="hint">${cat.name}是一只${cat.personality}的${cat.gender}猫，当前身份是${cat.role}。现在${activityText(cat)}。对族长的好感是 ${cat.affection}（${affectionLabel(cat.affection)}）。${mate ? `伴侣是${mate.name}。` : "还没有伴侣。"}</p>
+        <label for="renameInput"><strong>改名</strong></label>
+        <input id="renameInput" maxlength="8" value="${cat.name.replace(/"/g, "&quot;")}" aria-label="给猫改名">
+        <div class="detail-actions">
+          <button id="saveNameBtn">保存名字</button>
+          <button id="closeDetailBtn" class="secondary">收起详情</button>
+        </div>
+      `;
+      document.getElementById("saveNameBtn").addEventListener("click", () => {
+        const input = document.getElementById("renameInput");
+        const newName = input.value.trim();
+        if (!newName) {
+          toast("名字不能为空。");
+          return;
+        }
+        const oldName = cat.name;
+        cat.name = newName.slice(0, 8);
+        cat.nameRoot = nameRootFrom(cat.name);
+        log(`${oldName}有了新名字：${cat.name}。`, "改名");
+        renderAll();
+        showCatDetail(cat);
+      });
+      document.getElementById("closeDetailBtn").addEventListener("click", () => {
+        els.catDetail.classList.remove("active");
+      });
+      els.catDetail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function renderLogs() {
+      els.logList.innerHTML = "";
+      if (!state.logs.length) {
+        els.logList.innerHTML = `<div class="empty">还没有事件。</div>`;
+        return;
+      }
+      state.logs.slice(0, 8).forEach(item => {
+        const div = document.createElement("div");
+        div.className = "log-item";
+        div.innerHTML = `<strong>第${item.turn}天 · ${item.type}</strong><br>${item.message}`;
+        els.logList.appendChild(div);
+      });
+    }
+
+    function renderAll() {
+      renderStatus();
+      renderTimeSky();
+      renderRelations();
+      renderHerbs();
+      renderLeaderActions();
+      renderTerritory();
+      renderCats();
+      renderLogs();
+    }
+
+    function setMode(mode) {
+      state.selectedMode = mode;
+      state.selectedCats.clear();
+      els.modeBox.classList.add("active");
+      els.huntTerritoryChoice.style.display = mode === "hunt" ? "flex" : "none";
+      els.modeTitle.textContent = mode === "hunt" ? "🍖 组织狩猎队" : mode === "patrol" ? "🐾 组织巡逻队" : mode === "train" ? "⭐ 训练学徒" : "💬 找猫谈话";
+      els.confirmModeBtn.textContent = mode === "hunt" ? "开始狩猎" : mode === "patrol" ? "开始巡逻" : mode === "train" ? "开始训练" : "开始谈话";
+      if (mode === "hunt") {
+        state.huntTerritory = "own";
+        renderHuntTerritoryChoice();
+      }
+      updateModeHint();
+      renderCats();
+      els.catsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function updateModeHint() {
+      const count = state.selectedCats.size;
+      if (state.selectedMode === "talk") {
+        els.modeHint.textContent = `点击 1 只在营地里的猫，然后选择“开始谈话”。当前已选择 ${count} 只。`;
+        return;
+      }
+      if (state.selectedMode === "train") {
+        const selected = selectedCatList();
+        const apprenticeCount = selected.filter(cat => cat.role === "学徒").length;
+        const mentorCount = selected.filter(cat => ["族长", "副族长", "武士"].includes(cat.role)).length;
+        els.modeHint.textContent = `点击猫卡片选择 1 名学徒和 1 名导师。当前：学徒 ${apprenticeCount} 名，导师 ${mentorCount} 名。`;
+        return;
+      }
+      const task = state.selectedMode === "hunt" ? "狩猎" : "巡逻";
+      if (state.selectedMode === "hunt") {
+        const place = state.huntTerritory === "foreign" ? "他族领地" : "本族领地";
+        els.modeHint.textContent = `选择狩猎地点，再点击猫卡片选择狩猎队。当前地点：${place}。已选择 ${count} 只。`;
+        return;
+      }
+      els.modeHint.textContent = `点击猫卡片选择${task}队。建议选择1到4只健康的武士或学徒。当前已选择 ${count} 只。`;
+    }
+
+    function clearMode() {
+      state.selectedMode = null;
+      state.selectedCats.clear();
+      els.modeBox.classList.remove("active");
+      els.huntTerritoryChoice.style.display = "none";
+      renderCats();
+    }
+
+    function renderHuntTerritoryChoice() {
+      const options = [
+        { key: "own", label: "本族领地狩猎", text: "安全一些，猎物正常" },
+        { key: "foreign", label: "他族领地狩猎", text: "猎物更多，但可能被发现" }
+      ];
+      els.huntTerritoryChoice.innerHTML = options.map(option => `
+        <button class="${state.huntTerritory === option.key ? "gold" : "secondary"}" data-hunt-place="${option.key}">
+          ${option.label}<br><small>${option.text}</small>
+        </button>
+      `).join("");
+      els.huntTerritoryChoice.querySelectorAll("button").forEach(button => {
+        button.addEventListener("click", () => {
+          state.huntTerritory = button.dataset.huntPlace;
+          renderHuntTerritoryChoice();
+          updateModeHint();
+        });
+      });
+    }
+
+    function renderLeaderActions() {
+      const slot = timeSlots[state.timeIndex];
+      const actions = [
+        { label: "找猫谈话", kind: "secondary", fn: () => setMode("talk") }
+      ];
+      if (slot === "清晨") {
+        actions.unshift({ label: "分配早饭", kind: "gold", fn: shareBreakfast });
+        actions.push({ label: "查看猎物堆", kind: "secondary", fn: checkFreshKillPile });
+        els.leaderActionHint.textContent = "清晨适合安排吃饭和检查猎物堆。";
+      } else if (slot === "午后") {
+        actions.unshift({ label: "整理营地", kind: "", fn: tidyCampAsLeader });
+        actions.push({ label: "陪学徒练习", kind: "secondary", fn: leaderPracticeWithApprentices });
+        actions.push({ label: "采集草药", kind: "secondary", fn: gatherHerbsAsLeader });
+        els.leaderActionHint.textContent = "午后适合整理营地、谈话和练习。";
+      } else if (slot === "黄昏") {
+        actions.unshift({ label: "查看边界", kind: "", fn: checkBorderAsLeader });
+        actions.push({ label: "安抚族群", kind: "secondary", fn: calmClanAsLeader });
+        els.leaderActionHint.textContent = "黄昏适合看边界，也可以安抚大家。";
+      } else {
+        actions.unshift({ label: "族长睡觉", kind: "gold", fn: leaderSleep });
+        actions.push({ label: "看月亮思考", kind: "secondary", fn: moonThought });
+        els.leaderActionHint.textContent = "月夜适合睡觉恢复，也可以静静思考。";
+      }
+
+      els.leaderActions.innerHTML = "";
+      actions.forEach(action => {
+        const button = document.createElement("button");
+        button.textContent = action.label;
+        button.className = action.kind || "";
+        button.addEventListener("click", action.fn);
+        els.leaderActions.appendChild(button);
+      });
+    }
+
+    function leaderCat() {
+      return state.cats.find(cat => cat.role === "族长") || state.cats[0];
+    }
+
+    function shareBreakfast() {
+      const leader = leaderCat();
+      catsInCamp().forEach(cat => changeAffection(cat, 2));
+      changeAffection(leader, 2);
+      log(`${leader.name}亲自分配早饭，族猫们觉得自己被照顾到了。大家对族长的好感提升。`, "族长行动");
+      renderAll();
+    }
+
+    function checkFreshKillPile() {
+      const found = Math.random() < 0.55 ? 1 : 0;
+      state.food += found;
+      log(found ? `你检查猎物堆，发现还有 1 份被苔藓盖住的食物。` : "你检查猎物堆，确认食物摆放整齐，没有浪费。", "族长行动");
+      renderAll();
+    }
+
+    function tidyCampAsLeader() {
+      state.threat = clamp(state.threat - 2, 0, 100);
+      catsInCamp().forEach(cat => {
+        if (Math.random() < 0.45) changeAffection(cat, 1);
+      });
+      log("你带头整理营地入口和苔藓窝。营地更有秩序，反派压力稍微下降。", "族长行动");
+      renderAll();
+    }
+
+    function leaderPracticeWithApprentices() {
+      const apprentices = catsInCamp().filter(cat => cat.role === "学徒");
+      if (!apprentices.length) {
+        toast("现在营地里没有可以一起练习的学徒。");
+        return;
+      }
+      const apprentice = pick(apprentices);
+      apprentice.hunting = clamp(apprentice.hunting + 2, 0, 100);
+      apprentice.fighting = clamp(apprentice.fighting + 2, 0, 100);
+      changeAffection(apprentice, 4);
+      log(`你陪${apprentice.name}练习了一会儿。${apprentice.name}的狩猎和战斗各提升 2，好感也提升了。`, "族长行动");
+      renderAll();
+    }
+
+    function gatherHerbsAsLeader() {
+      const herbKey = pick(["cobweb", "marigold", "catmint"]);
+      const herbName = herbKey === "cobweb" ? "蜘蛛丝" : herbKey === "marigold" ? "金盏花" : "猫薄荷";
+      const amount = herbKey === "catmint" ? 1 : rand(1, 2);
+      state.herbs[herbKey] += amount;
+      log(`你陪巫医在营地附近采集草药，找到 ${amount} 份${herbName}。`, "草药");
+      renderAll();
+    }
+
+    function checkBorderAsLeader() {
+      const leader = leaderCat();
+      const found = Math.random() < 0.45;
+      if (found) {
+        state.threat = clamp(state.threat - 5, 0, 100);
+        log(`${leader.name}亲自查看边界，发现${villain.name}留下的旧气味，并带领族猫重新标记边界。`, "族长行动");
+      } else {
+        state.threat = clamp(state.threat - 2, 0, 100);
+        log(`${leader.name}查看边界。今晚边界安静，族群安心了一些。`, "族长行动");
+      }
+      renderAll();
+    }
+
+    function calmClanAsLeader() {
+      catsInCamp().forEach(cat => {
+        cat.health = clamp(cat.health + 1, 0, 100);
+        changeAffection(cat, 2);
+      });
+      state.threat = clamp(state.threat - 3, 0, 100);
+      log("你召集族猫说了几句安定的话。大家心里踏实了一些，对族长更亲近。", "族长行动");
+      renderAll();
+    }
+
+    function leaderSleep() {
+      const leader = leaderCat();
+      leader.health = clamp(leader.health + 8, 0, 100);
+      changeAffection(leader, 1);
+      log(`${leader.name}回到自己的苔藓窝睡了一觉。族长恢复了精神。`, "族长行动");
+      renderAll();
+    }
+
+    function moonThought() {
+      const leader = leaderCat();
+      changeAffection(leader, 2);
+      state.threat = clamp(state.threat - 1, 0, 100);
+      log(`${leader.name}在月光下安静思考明天的安排。心里更清楚了。`, "族长行动");
+      renderAll();
+    }
+
+    function selectedCatList() {
+      return state.cats.filter(cat => state.selectedCats.has(cat.id));
+    }
+
+    function pickPrey() {
+      return pick(preyByCamp[state.campKey] || preyByCamp.forest);
+    }
+
+    function makeExpedition(type, team, remaining, result) {
+      const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+      state.expeditions.push({
+        id,
+        type,
+        catIds: team.map(cat => cat.id),
+        remaining,
+        result
+      });
+      team.forEach(cat => {
+        cat.activity = { type, remaining, expeditionId: id };
+      });
+      return id;
+    }
+
+    function doHunt() {
+      const team = selectedCatList();
+      if (!team.length) {
+        toast("请先点击猫卡片选择狩猎队。");
+        return;
+      }
+      const camp = camps[state.campKey];
+      const targetClan = pick(clans);
+      let total = 0;
+      const catches = [];
+      const healthChanges = [];
+      const skillCats = [];
+      team.forEach(cat => {
+        const roll = Math.random() * 60 + cat.hunting * camp.huntBonus + state.discoveredPreySites * 5;
+        let food = 0;
+        if (roll > 112) food = rand(3, 4);
+        else if (roll > 82) food = rand(1, 3);
+        else if (roll > 58) food = 1;
+        total += food;
+        if (food > 0) {
+          catches.push(`${cat.name}抓到${food > 1 ? food + "份" : "一份"}${pickPrey()}`);
+          skillCats.push(cat.id);
+        } else {
+          catches.push(`${cat.name}悄悄追踪了一路，但猎物溜走了`);
+        }
+        if (camp.risk === "fox" && Math.random() < 0.08) {
+          healthChanges.push({ id: cat.id, amount: -rand(5, 13) });
+          catches.push(`${cat.name}发现狐狸脚印，回营后需要休息`);
+        }
+      });
+      if (state.campKey === "river" && Math.random() < 0.34) {
+        total += 2;
+        catches.push("河水很清，队伍额外捉到两条鱼");
+      }
+      if (state.huntTerritory === "foreign") {
+        const bonus = Math.max(2, Math.ceil(total * 0.6) + rand(1, 3));
+        total += bonus;
+        catches.push(`他们冒险进入${targetClan}猎场，额外找到 ${bonus} 份猎物`);
+      }
+      const detected = state.huntTerritory === "foreign" && Math.random() < 0.48;
+      makeExpedition("hunt", team, 1, { total, catches, healthChanges, skillCats, territory: state.huntTerritory, targetClan, detected });
+      log(`${team.map(cat => cat.name).join("、")}组成了狩猎队，向${state.huntTerritory === "foreign" ? targetClan + "的猎场" : "本族猎场"}出发。它们不会立刻回来。`, "狩猎");
+      clearMode();
+      renderAll();
+    }
+
+    function doPatrol() {
+      const team = selectedCatList();
+      if (!team.length) {
+        toast("请先点击猫卡片选择巡逻队。");
+        return;
+      }
+      const power = team.reduce((sum, cat) => sum + cat.fighting + cat.health / 2, 0) / team.length + camps[state.campKey].patrolBonus;
+      const clan = pick(clans);
+      const eventRoll = rand(1, 100);
+      let message = `${team.map(cat => cat.name).join("、")}沿着边界巡逻。`;
+      const result = {
+        message: "",
+        relationClan: null,
+        relationAmount: 0,
+        newCat: null,
+        foodChange: 0,
+        hurtCatId: null,
+        hurtAmount: 0,
+        preySiteChange: 0,
+        skillCats: team.map(cat => cat.id)
+      };
+
+      if (eventRoll < 16) {
+        result.relationClan = clan;
+        result.relationAmount = Math.round(-rand(4, 9) - camps[state.campKey].conflictBonus / 3);
+        message += `他们发现${clan}的陌生气味，边界需要多加留意。`;
+      } else if (eventRoll < 31) {
+        const newCat = createCat({ name: makeName(), stage: "武士", role: "武士", age: rand(7, 13) });
+        if (power > 75 || Math.random() < 0.45) {
+          result.newCat = newCat;
+          message += `他们遇见友善的流浪猫${newCat.name}，${newCat.name}决定加入族群。`;
+        } else {
+          message += "他们遇见一只流浪猫，对方还想再观察这个营地。";
+        }
+      } else if (eventRoll < 44) {
+        const kit = createCat({ name: makeName("幼崽"), stage: "幼崽", role: "幼崽", age: 0 });
+        result.newCat = kit;
+        result.foodChange = -1;
+        message += `他们发现迷路幼崽${kit.name}，族群收留了这个小家伙。`;
+      } else if (eventRoll < 57) {
+        const hurt = pick(team);
+        result.hurtCatId = hurt.id;
+        result.hurtAmount = rand(3, 9);
+        message += `他们看见狐狸脚印，${hurt.name}保护大家绕开了危险。`;
+      } else if (eventRoll < 72) {
+        result.preySiteChange = 1;
+        message += "他们找到新的猎物地点，之后狩猎会更顺利。";
+      } else {
+        result.relationClan = clan;
+        result.relationAmount = rand(1, 4);
+        message += "边界安静，巡逻队还顺路交换了友好的气味标记。";
+      }
+
+      result.message = message;
+      makeExpedition("patrol", team, 2, result);
+      log(`${team.map(cat => cat.name).join("、")}组成了巡逻队，沿边界出发。巡逻要花 2 回合，它们回来后才会报告发现。`, "巡逻");
+      clearMode();
+      renderAll();
+    }
+
+    function doTrain() {
+      const selected = selectedCatList();
+      const apprentice = selected.find(cat => cat.role === "学徒");
+      const mentor = selected.find(cat => ["族长", "副族长", "武士"].includes(cat.role));
+      if (!apprentice || !mentor) {
+        toast("请点击选择 1 名学徒和 1 名导师。");
+        return;
+      }
+      const huntingGain = rand(3, 7);
+      const fightingGain = rand(3, 7);
+      apprentice.hunting = clamp(apprentice.hunting + huntingGain, 0, 100);
+      apprentice.fighting = clamp(apprentice.fighting + fightingGain, 0, 100);
+      mentor.fighting = clamp(mentor.fighting + 1, 0, 100);
+      mentor.hunting = clamp(mentor.hunting + 1, 0, 100);
+      changeAffection(apprentice, 5);
+      changeAffection(mentor, 2);
+      const lessons = [
+        "辨认风向和脚印",
+        "在落叶上轻轻行走",
+        "听懂鸟群的提醒",
+        "练习边界礼仪",
+        "学习保护幼崽和长老"
+      ];
+      log(`${mentor.name}带着${apprentice.name}训练，练习了${pick(lessons)}。${apprentice.name}的狩猎提升 ${huntingGain}，战斗提升 ${fightingGain}。`, "训练");
+      clearMode();
+      renderAll();
+    }
+
+    function doTalk() {
+      const cat = selectedCatList()[0];
+      if (!cat) {
+        toast("请先点击选择一只想谈话的猫。");
+        return;
+      }
+      clearMode();
+      showChosenCatTalk(cat);
+    }
+
+    function showChosenCatTalk(cat) {
+      const questions = [
+        {
+          text: `${cat.name}坐在你身边，说：“族长，你觉得我今天做得好吗？”`,
+          good: `你认真肯定了${cat.name}。它的眼睛亮了起来。`,
+          calm: `${cat.name}听了你的建议，决定明天再努力一点。`
+        },
+        {
+          text: `${cat.name}低声说：“我有点担心${villain.name}又来边界。”`,
+          good: `你告诉${cat.name}族群会一起守住边界。它安心了很多。`,
+          calm: `${cat.name}点点头，准备多留意边界气味。`
+        },
+        {
+          text: `${cat.name}问：“族长，我可以帮营地做些什么？”`,
+          good: `${cat.name}帮忙整理营地，觉得自己很有用。`,
+          calm: `${cat.name}去检查苔藓窝，营地变得更舒服了。`
+        }
+      ];
+      const talk = pick(questions);
+      state.activeStory = {
+        title: `💬 和${cat.name}谈话`,
+        notice: `你主动找${cat.name}谈话。选择一句话回答。`,
+        text: talk.text,
+        choices: [
+          { label: "温柔鼓励", kind: "gold", effect: () => { changeAffection(cat, 8); cat.health = clamp(cat.health + 2, 0, 100); log(talk.good, "谈话"); } },
+          { label: "认真建议", kind: "secondary", effect: () => { changeAffection(cat, 4); cat.hunting = clamp(cat.hunting + 1, 0, 100); cat.fighting = clamp(cat.fighting + 1, 0, 100); log(talk.calm, "谈话"); } },
+          { label: "先听它说完", effect: () => { changeAffection(cat, 6); log(`你安静听${cat.name}说完。${cat.name}觉得族长很愿意理解自己。`, "谈话"); } }
+        ]
+      };
+      renderStory();
+    }
+
+    function processExpeditions() {
+      const finished = [];
+      state.expeditions.forEach(expedition => {
+        expedition.remaining -= 1;
+        expedition.catIds.forEach(id => {
+          const cat = state.cats.find(item => item.id === id);
+          if (cat?.activity) {
+            cat.activity.remaining = expedition.remaining;
+          }
+        });
+        if (expedition.remaining <= 0) finished.push(expedition);
+      });
+
+      finished.forEach(expedition => {
+        if (expedition.type === "hunt") {
+          completeHunt(expedition);
+        } else {
+          completePatrol(expedition);
+        }
+      });
+      state.expeditions = state.expeditions.filter(expedition => expedition.remaining > 0);
+    }
+
+    function completeHunt(expedition) {
+      const team = expedition.catIds.map(id => state.cats.find(cat => cat.id === id)).filter(Boolean);
+      const result = expedition.result;
+      result.skillCats.forEach(id => {
+        const cat = state.cats.find(item => item.id === id);
+        if (cat) cat.hunting = clamp(cat.hunting + 1, 0, 100);
+      });
+      result.healthChanges.forEach(change => {
+        const cat = state.cats.find(item => item.id === change.id);
+        if (cat) cat.health = clamp(cat.health + change.amount, 0, 100);
+      });
+      state.food += result.total;
+      team.forEach(cat => cat.activity = null);
+      log(`${team.map(cat => cat.name).join("、")}从猎场回来了。${result.catches.join("，")}。族群获得 ${result.total} 份食物。`, "狩猎返回");
+      if (result.detected) {
+        showForeignHuntCaughtStory(result.targetClan, team);
+      }
+    }
+
+    function showForeignHuntCaughtStory(targetClan, hunters) {
+      state.activeStory = {
+        title: `⚠️ 被${targetClan}发现了`,
+        notice: `你的狩猎队在他族领地狩猎，被${targetClan}巡逻队拦住了。`,
+        text: `${targetClan}的巡逻队说：“这些猎物是在我们的领地抓到的。你们必须解释清楚。”`,
+        choices: [
+          { label: "试着狡辩", kind: "secondary", effect: () => attemptExcuse(targetClan, hunters) },
+          { label: "直接开战", kind: "warning", effect: () => showBattleSizeStory(targetClan, hunters) }
+        ]
+      };
+      renderStory();
+    }
+
+    function attemptExcuse(targetClan, hunters) {
+      const relation = state.relations[targetClan] || 50;
+      const believed = rand(1, 100) + Math.floor(relation / 2) > 74;
+      if (believed) {
+        changeRelation(targetClan, -5);
+        log(`你解释说狩猎队追着猎物误入边界。${targetClan}半信半疑，但这次没有追究。关系下降。`, "狡辩");
+        state.activeStory = null;
+        renderStory();
+        renderAll();
+      } else {
+        changeRelation(targetClan, -10);
+        log(`${targetClan}不相信你的解释，边界气氛一下子紧张起来。`, "狡辩失败");
+        showBattleSizeStory(targetClan, hunters);
+      }
+    }
+
+    function showBattleSizeStory(targetClan, hunters) {
+      state.activeStory = {
+        title: `⚔️ 和${targetClan}开战？`,
+        notice: `选择派出的兵力。兵力越大越容易赢，但受伤也会更多。`,
+        text: `${targetClan}拒绝退让。你要派多少猫支援边界？`,
+        choices: [
+          { label: "小兵力", kind: "secondary", effect: () => resolveBattle(targetClan, hunters, "small") },
+          { label: "中兵力", kind: "gold", effect: () => resolveBattle(targetClan, hunters, "medium") },
+          { label: "大兵力", kind: "warning", effect: () => resolveBattle(targetClan, hunters, "large") }
+        ]
+      };
+      renderStory();
+    }
+
+    function resolveBattle(targetClan, hunters, size) {
+      const sizes = {
+        small: { label: "小兵力", count: 2, win: 42, hurt: 1, relation: -8 },
+        medium: { label: "中兵力", count: 4, win: 62, hurt: 2, relation: -13 },
+        large: { label: "大兵力", count: 6, win: 78, hurt: 3, relation: -20 }
+      };
+      const plan = sizes[size];
+      const fighters = catsInCamp()
+        .filter(cat => ["族长", "副族长", "武士", "学徒"].includes(cat.role) && cat.health > 25)
+        .sort((a, b) => b.fighting - a.fighting)
+        .slice(0, plan.count);
+      const averagePower = fighters.length ? fighters.reduce((sum, cat) => sum + cat.fighting, 0) / fighters.length : 25;
+      const won = rand(1, 100) + Math.floor(averagePower / 5) > plan.win;
+      const hurtCount = Math.min(fighters.length, plan.hurt + (won ? 0 : 1));
+      fighters.slice(0, hurtCount).forEach(cat => {
+        const damage = size === "large" ? rand(8, 17) : size === "medium" ? rand(6, 13) : rand(4, 10);
+        cat.health = clamp(cat.health - damage, 0, 100);
+      });
+      changeRelation(targetClan, plan.relation);
+      state.threat = clamp(state.threat + (won ? 4 : 8), 0, 100);
+      const herbUse = useBattleHerbs(fighters.slice(0, hurtCount));
+      log(`${plan.label}出战。${won ? `${state.clanName}守住了猎物，但` : `${state.clanName}被迫退回边界，`}有 ${hurtCount} 只猫受伤。${herbUse}`, won ? "战斗胜利" : "战斗失利");
+      state.activeStory = null;
+      renderStory();
+      renderAll();
+    }
+
+    function useBattleHerbs(hurtCats) {
+      if (!hurtCats.length) return "没有猫需要草药。";
+      let used = [];
+      hurtCats.forEach(cat => {
+        if (state.herbs.cobweb > 0) {
+          state.herbs.cobweb -= 1;
+          cat.health = clamp(cat.health + 3, 0, 100);
+          used.push("蜘蛛丝");
+        }
+        if (state.herbs.marigold > 0 && cat.health < 70) {
+          state.herbs.marigold -= 1;
+          cat.health = clamp(cat.health + 6, 0, 100);
+          used.push("金盏花");
+        }
+      });
+      return used.length ? `巫医用了${used.join("、")}处理伤口。` : "草药不够，巫医只能让伤猫多休息。";
+    }
+
+    function completePatrol(expedition) {
+      const team = expedition.catIds.map(id => state.cats.find(cat => cat.id === id)).filter(Boolean);
+      const result = expedition.result;
+      if (result.relationClan) changeRelation(result.relationClan, result.relationAmount);
+      if (result.newCat) state.cats.push(result.newCat);
+      if (result.foodChange) state.food = Math.max(0, state.food + result.foodChange);
+      if (result.hurtCatId) {
+        const hurt = state.cats.find(cat => cat.id === result.hurtCatId);
+        if (hurt) hurt.health = clamp(hurt.health - result.hurtAmount, 0, 100);
+      }
+      if (result.preySiteChange) state.discoveredPreySites += result.preySiteChange;
+      result.skillCats.forEach(id => {
+        const cat = state.cats.find(item => item.id === id);
+        if (cat) cat.fighting = clamp(cat.fighting + 1, 0, 100);
+      });
+      team.forEach(cat => cat.activity = null);
+      log(`${team.map(cat => cat.name).join("、")}巡逻回来了。${result.message}`, "巡逻返回");
+    }
+
+    function nextTurn() {
+      advanceTime(true);
+    }
+
+    function advanceTime(manual) {
+      if (state.activeStory) {
+        toast("请先处理当前剧情选择。");
+        return;
+      }
+      state.timeIndex = (state.timeIndex + 1) % timeSlots.length;
+      if (state.timeIndex === 0) {
+        state.turn += 1;
+        processExpeditions();
+        consumeFood();
+        healAndTrain();
+        growCats();
+        maybeMatesAndKits();
+        campSeasonEffect();
+        maybeRelationDrift();
+        if (state.turn % 3 === 0 || Math.random() < 0.2) {
+          showRandomStory();
+        }
+      }
+      runLifeMoment(manual);
+      renderAll();
+    }
+
+    function runLifeMoment(manual) {
+      const slot = timeSlots[state.timeIndex];
+      if (slot === "清晨") {
+        log(`清晨到了。族猫们伸展爪子，开始新的一天。${manual ? "你陪大家等待了一会儿。" : ""}`, "时间");
+      } else if (slot === "午后") {
+        if (Math.random() < 0.55) {
+          showCatTalk();
+        } else {
+          autonomousCampLife();
+        }
+      } else if (slot === "黄昏") {
+        if (Math.random() < 0.38 || state.threat > 45) {
+          showVillainEvent();
+        } else {
+          log("黄昏时，巡逻路线传来风吹草叶的声音，营地暂时平静。", "生活");
+        }
+      } else {
+        sleepMoment();
+      }
+      if (!state.activeStory && Math.random() < 0.22) {
+        showRandomStory();
+      }
+    }
+
+    function sleepMoment() {
+      catsInCamp().forEach(cat => {
+        cat.health = clamp(cat.health + 2, 0, 100);
+        if (cat.affection < 85 && Math.random() < 0.22) changeAffection(cat, 1);
+      });
+      log("月夜降临，营地慢慢安静下来。留在营地的猫睡了一觉，健康稍微恢复。", "睡觉");
+    }
+
+    function autonomousCampLife() {
+      const cats = catsInCamp();
+      const actor = pick(cats.length ? cats : state.cats);
+      if (!actor) return;
+      const moments = [
+        () => {
+          state.food += 1;
+          changeAffection(actor, 1);
+          log(`${actor.name}自己整理猎物堆，找到 1 份被叶子盖住的食物。`, "生活");
+        },
+        () => {
+          actor.hunting = clamp(actor.hunting + 1, 0, 100);
+          log(`${actor.name}在营地边缘练习追踪气味，狩猎能力稍微提升。`, "生活");
+        },
+        () => {
+          actor.health = clamp(actor.health + 3, 0, 100);
+          log(`${actor.name}找了个暖和的位置晒太阳，精神变好了。`, "生活");
+        },
+        () => {
+          state.threat = clamp(state.threat - 1, 0, 100);
+          log(`${actor.name}主动检查营地入口，大家对${villain.name}的担心少了一点。`, "生活");
+        }
+      ];
+      pick(moments)();
+    }
+
+    function consumeFood() {
+      const hungryCats = state.cats.filter(cat => cat.stage !== "长老" || cat.health > 0);
+      const need = hungryCats.length;
+      state.food -= need;
+      if (state.food >= 0) {
+        log(`清晨吃饭时，族群消耗了 ${need} 份食物。`, "吃饭");
+        return;
+      }
+      const shortage = Math.abs(state.food);
+      state.food = 0;
+      state.cats.forEach(cat => {
+        cat.health = clamp(cat.health - rand(3, 7), 0, 100);
+        changeAffection(cat, -2);
+      });
+      log(`清晨吃饭时食物不够，族群少了 ${shortage} 份食物。大家有些疲惫，健康下降。`, "吃饭");
+    }
+
+    function healAndTrain() {
+      state.cats.forEach(cat => {
+        if (cat.health < 100) {
+          const healerBonus = state.cats.some(item => item.role === "巫医" && item.health > 35) ? 3 : 1;
+          cat.health = clamp(cat.health + healerBonus, 0, 100);
+        }
+        if (cat.stage === "学徒") {
+          cat.hunting = clamp(cat.hunting + rand(0, 2), 0, 100);
+          cat.fighting = clamp(cat.fighting + rand(0, 2), 0, 100);
+        }
+      });
+    }
+
+    function growCats() {
+      state.cats.forEach(cat => {
+        cat.age += 1;
+        if (cat.stage === "幼崽" && cat.age >= 4) {
+          const oldName = cat.name;
+          cat.nameRoot = cat.nameRoot || nameRootFrom(cat.name);
+          cat.stage = "学徒";
+          cat.role = "学徒";
+          cat.name = makeName("学徒", cat.nameRoot);
+          cat.hunting = Math.max(cat.hunting, rand(26, 42));
+          cat.fighting = Math.max(cat.fighting, rand(24, 40));
+          log(`${oldName}已经长大，获得学徒名${cat.name}，成为了一名学徒。`, "成长");
+        } else if (cat.stage === "学徒" && cat.age >= 9) {
+          const oldName = cat.name;
+          cat.nameRoot = cat.nameRoot || nameRootFrom(cat.name);
+          cat.stage = "武士";
+          cat.role = "武士";
+          cat.name = makeName("武士", cat.nameRoot);
+          cat.hunting = Math.max(cat.hunting, rand(48, 66));
+          cat.fighting = Math.max(cat.fighting, rand(46, 66));
+          log(`${oldName}完成训练，获得武士名${cat.name}，成为了一名真正的武士。`, "成长");
+        } else if (cat.stage === "武士" && cat.age >= 28 && cat.role === "武士" && Math.random() < 0.16) {
+          cat.stage = "长老";
+          cat.role = "长老";
+          log(`${cat.name}把更多时间留给故事和阳光，成为了受尊敬的长老。`, "成长");
+        }
+      });
+    }
+
+    function maybeMatesAndKits() {
+      const adults = state.cats.filter(cat => !cat.activity && cat.stage === "武士" && !cat.mateId && cat.role !== "巫医" && cat.health > 50);
+      const males = adults.filter(cat => cat.gender === "公");
+      const females = adults.filter(cat => cat.gender === "母");
+
+      if (males.length && females.length && Math.random() < 0.18) {
+        const a = pick(males);
+        const b = pick(females);
+        a.mateId = b.id;
+        b.mateId = a.id;
+        log(`${a.name}和${b.name}成为了伴侣。`, "伴侣");
+      }
+
+      const mothers = state.cats.filter(cat => !cat.activity && cat.gender === "母" && cat.mateId && cat.stage === "武士" && cat.health > 60);
+      if (mothers.length && state.food >= 6 && Math.random() < 0.15) {
+        const mother = pick(mothers);
+        const count = rand(1, 3);
+        const kits = [];
+        for (let i = 0; i < count; i += 1) {
+          const kit = createCat({ name: makeName("幼崽"), stage: "幼崽", role: "幼崽", age: 0 });
+          kits.push(kit);
+          state.cats.push(kit);
+        }
+        state.food = Math.max(0, state.food - count);
+        log(`${mother.name}生下了 ${count} 只幼崽：${kits.map(cat => cat.name).join("、")}，族群变得更加热闹了。`, "幼崽");
+      }
+    }
+
+    function campSeasonEffect() {
+      const camp = camps[state.campKey];
+      if (camp.risk === "winter" && state.turn % 6 === 0) {
+        const lost = Math.min(state.food, rand(2, 5));
+        state.food -= lost;
+        log(`寒冷的河风吹来，鱼群游向深水，族群少了 ${lost} 份食物。`, "营地");
+      }
+      if (camp.risk === "lowPrey" && Math.random() < 0.18) {
+        log("山洞附近今天很安静，猎物气味较少。", "营地");
+      }
+      if (camp.risk === "border" && Math.random() < 0.18) {
+        const clan = pick(clans);
+        changeRelation(clan, -rand(3, 7));
+        log(`草原边界视野开阔，也让${clan}更容易注意到你的族群。关系略微下降。`, "营地");
+      }
+    }
+
+    function maybeRelationDrift() {
+      if (Math.random() < 0.35) {
+        const clan = pick(clans);
+        changeRelation(clan, rand(-3, 3));
+      }
+    }
+
+    function showRandomStory() {
+      if (state.activeStory) return;
+      const storyMakers = [
+        stormStory,
+        lowPreyStory,
+        lostKitStory,
+        healerDreamStory,
+        helpClanStory,
+        strangeScentStory,
+        sickCatStory,
+        newPreyStory,
+        elderLegendStory,
+        apprenticeStory,
+        mossNestStory,
+        herbPatchStory,
+        moonlitMeetingStory,
+        friendlyVisitorStory,
+        nurseryGameStory,
+        quietDawnStory,
+        streamStoneStory,
+        thornTunnelStory,
+        herbStockStory,
+        kitQuestionStory,
+        preyShareArgumentStory,
+        medicineCatRequestStory,
+        borderLessonStory,
+        hiddenDenStory,
+        owlShadowStory
+      ];
+      state.activeStory = pick(storyMakers)();
+      renderStory();
+    }
+
+    function showCatTalk() {
+      if (state.activeStory) return;
+      const candidates = catsInCamp().filter(cat => cat.role !== "幼崽" || Math.random() < 0.5);
+      const cat = pick(candidates.length ? candidates : state.cats);
+      const talks = [
+        {
+          title: `🐱 ${cat.name}想和你说话`,
+          notice: `${cat.name}来找你谈话了，选择一句话回答它。`,
+          text: `${cat.name}走到你身边，小声说：“族长，我今天有点担心自己做得不够好。”`,
+          choices: [
+            { label: "鼓励它", effect: () => { changeAffection(cat, 8); cat.health = clamp(cat.health + 2, 0, 100); log(`你鼓励了${cat.name}。${cat.name}对族长更信任了。`, "对话"); } },
+            { label: "让它继续努力", kind: "secondary", effect: () => { changeAffection(cat, 3); cat.hunting = clamp(cat.hunting + 1, 0, 100); cat.fighting = clamp(cat.fighting + 1, 0, 100); log(`你提醒${cat.name}继续努力。它点点头，准备更认真练习。`, "对话"); } }
+          ]
+        },
+        {
+          title: `🍃 ${cat.name}提出建议`,
+          notice: `${cat.name}来找你谈话了，选择怎么回应它的建议。`,
+          text: `${cat.name}说：“如果我们整理营地入口，也许幼崽进出会更安全。”`,
+          choices: [
+            { label: "采纳建议", effect: () => { changeAffection(cat, 7); state.threat = clamp(state.threat - 3, 0, 100); log(`你采纳了${cat.name}的建议。营地入口更安全，反派压力下降。`, "对话"); } },
+            { label: "先记下来", kind: "secondary", effect: () => { changeAffection(cat, 2); log(`你把${cat.name}的建议记了下来。它觉得自己被认真听见了。`, "对话"); } }
+          ]
+        },
+        {
+          title: `🌙 ${cat.name}有个小愿望`,
+          notice: `${cat.name}来找你谈话了，它正在等你的回答。`,
+          text: `${cat.name}望着猎物堆说：“我想帮族群做更多事。”`,
+          choices: [
+            { label: "安排它帮忙", effect: () => { changeAffection(cat, 6); state.food += 1; log(`${cat.name}帮忙整理猎物堆，意外找到 1 份还能吃的食物。`, "对话"); } },
+            { label: "让它先休息", kind: "secondary", effect: () => { changeAffection(cat, 4); cat.health = clamp(cat.health + 4, 0, 100); log(`你让${cat.name}先好好休息。它窝进苔藓里，心情安稳了。`, "对话"); } }
+          ]
+        }
+      ];
+      state.activeStory = pick(talks);
+      renderStory();
+    }
+
+    function showVillainEvent() {
+      if (state.activeStory) return;
+      state.threat = clamp(state.threat + rand(3, 8), 0, 100);
+      const targetClan = pick(clans);
+      const events = [
+        {
+          title: `🕯️ ${villain.name}留下挑衅气味`,
+          text: `${villain.group}的${villain.name}在边界留下气味，好像想让你的族群紧张起来。`,
+          choices: [
+            { label: "冷静加强边界", effect: () => { state.threat = clamp(state.threat - 8, 0, 100); state.cats.forEach(cat => { if (["族长", "副族长", "武士"].includes(cat.role)) changeAffection(cat, 2); }); log(`你没有被${villain.name}吓住，而是冷静加强边界。武士们更信任你的判断。`, "反派"); } },
+            { label: "派猫追查", kind: "gold", effect: () => { const scout = pick(catsInCamp().filter(cat => canJoinAction(cat))); if (scout) { scout.fighting = clamp(scout.fighting + 2, 0, 100); changeAffection(scout, 4); } state.threat = clamp(state.threat - 4, 0, 100); log(`你派出猫追查${villain.name}的踪迹。大家发现他只是虚张声势。`, "反派"); } },
+            { label: "暂时不理", kind: "secondary", effect: () => { log(`${villain.name}的气味留在边界，族群有些不安。`, "反派"); } }
+          ]
+        },
+        {
+          title: `🍖 猎物堆旁的脚印`,
+          text: `猎物堆旁出现陌生脚印，长老怀疑是${villain.name}派来的流浪猫试探营地。`,
+          choices: [
+            { label: "守住猎物堆", effect: () => { state.threat = clamp(state.threat - 6, 0, 100); log("你安排猫守住猎物堆。陌生脚印没有再靠近。", "反派"); } },
+            { label: "分一点假猎物引开", kind: "secondary", effect: () => { state.food = Math.max(0, state.food - 1); state.threat = clamp(state.threat - 10, 0, 100); log(`你用 1 份食物引开试探者，${villain.name}的计划落空了。`, "反派"); } }
+          ]
+        },
+        {
+          title: `🌲 ${villain.name}散布谣言`,
+          text: `${villain.name}告诉${targetClan}，说你的族群想独占猎场。`,
+          choices: [
+            { label: "派使者解释", effect: () => { changeRelation(targetClan, 7); state.threat = clamp(state.threat - 5, 0, 100); log(`你派使者向${targetClan}解释清楚。${villain.name}的谣言没有成功。`, "反派"); } },
+            { label: "先观察", kind: "secondary", effect: () => { changeRelation(targetClan, -3); log(`${targetClan}仍有些怀疑，边界气氛变得微妙。`, "反派"); } }
+          ]
+        }
+      ];
+      state.activeStory = pick(events);
+      renderStory();
+    }
+
+    function renderStory() {
+      const story = state.activeStory;
+      if (!story) {
+        els.storyBox.classList.remove("active");
+        els.storyNotice.classList.remove("active");
+        return;
+      }
+      els.storyTitle.textContent = story.title;
+      if (story.notice) {
+        els.storyNotice.textContent = story.notice;
+        els.storyNotice.classList.add("active");
+      } else {
+        els.storyNotice.textContent = "";
+        els.storyNotice.classList.remove("active");
+      }
+      els.storyText.textContent = story.text;
+      els.storyActions.innerHTML = "";
+      story.choices.forEach(choice => {
+        const btn = document.createElement("button");
+        btn.textContent = choice.label;
+        btn.className = choice.kind || "";
+        btn.addEventListener("click", () => {
+          const currentStory = state.activeStory;
+          choice.effect();
+          if (state.activeStory === currentStory) {
+            state.activeStory = null;
+          }
+          renderStory();
+          renderAll();
+        });
+        els.storyActions.appendChild(btn);
+      });
+      els.storyBox.classList.add("active");
+      els.storyBox.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function stormStory() {
+      return {
+        title: "⛈️ 暴风雨来临",
+        text: "乌云压低，风把树叶吹进营地。猫族需要决定怎么保护巢穴。",
+        choices: [
+          { label: "加固营地", kind: "gold", effect: () => { state.food = Math.max(0, state.food - 3); log("你让族猫加固营地。虽然用掉了一些食物储备，大家都安全度过暴风雨。", "剧情"); } },
+          { label: "先观察", kind: "secondary", effect: () => { const cat = pick(state.cats); cat.health = clamp(cat.health - rand(4, 10), 0, 100); log(`族群先观察天气，风雨比预想更大，${cat.name}有些着凉。`, "剧情"); } }
+        ]
+      };
+    }
+
+    function lowPreyStory() {
+      return {
+        title: "🍂 猎物突然减少",
+        text: "今天的森林很安静，猎物像藏进了叶堆里。",
+        choices: [
+          { label: "派猫寻找新地点", effect: () => { state.discoveredPreySites += 1; log("你安排猫寻找新猎物地点。大家发现一片有田鼠气味的草坡。", "剧情"); } },
+          { label: "节省食物", kind: "secondary", effect: () => { state.food += 2; state.cats.forEach(cat => cat.health = clamp(cat.health - 1, 0, 100)); log("族群节省食物，储备多留了两份，但大家肚子没有吃得很饱。", "剧情"); } }
+        ]
+      };
+    }
+
+    function lostKitStory() {
+      return {
+        title: "🐾 迷路幼崽",
+        text: "营地外传来小小的叫声，一只迷路幼崽躲在蕨叶下面。",
+        choices: [
+          { label: "收留它", effect: () => { const kit = createCat({ name: makeName("幼崽"), stage: "幼崽", role: "幼崽", age: 0 }); state.cats.push(kit); state.food = Math.max(0, state.food - 1); log(`族群收留了迷路幼崽${kit.name}。`, "剧情"); } },
+          { label: "送到边界寻找亲族", kind: "secondary", effect: () => { const clan = pick(clans); changeRelation(clan, 6); log(`你派巡逻队把幼崽送到边界。${clan}感谢你的善意。`, "剧情"); } }
+        ]
+      };
+    }
+
+    function healerDreamStory() {
+      return {
+        title: "🌙 巫医的梦",
+        text: "巫医说梦见月光落在三片叶子上，像是在提醒族群保持团结。",
+        choices: [
+          { label: "听从梦的提示", effect: () => { state.cats.forEach(cat => cat.health = clamp(cat.health + 4, 0, 100)); log("你让族群一起清理营地、分享食物。大家精神更好了。", "剧情"); } },
+          { label: "先记下来", kind: "secondary", effect: () => { state.food += 2; log("你把梦记在长老的故事里。当天狩猎队也带回了额外食物。", "剧情"); } }
+        ]
+      };
+    }
+
+    function helpClanStory() {
+      const clan = pick(clans);
+      return {
+        title: "🤝 敌族请求帮助",
+        text: `${clan}派来使者，请求借几份食物给生病的学徒。`,
+        choices: [
+          { label: "帮助它", effect: () => { state.food = Math.max(0, state.food - 4); changeRelation(clan, 12); log(`${state.clanName}分享了食物。${clan}记住了这份善意。`, "剧情"); } },
+          { label: "拒绝它", kind: "warning", effect: () => { changeRelation(clan, -8); log(`你决定保留食物。${clan}有些失望。`, "剧情"); } },
+          { label: "给一点点", kind: "secondary", effect: () => { state.food = Math.max(0, state.food - 2); changeRelation(clan, 5); log(`你送出两份食物，既帮助了对方，也保住了族群储备。`, "剧情"); } }
+        ]
+      };
+    }
+
+    function strangeScentStory() {
+      const clan = pick(clans);
+      return {
+        title: "🍃 陌生气味",
+        text: `边界出现了${clan}和流浪猫混在一起的气味。`,
+        choices: [
+          { label: "加强巡逻", effect: () => { changeRelation(clan, -4); state.cats.forEach(cat => { if (cat.role === "武士") cat.fighting = clamp(cat.fighting + 1, 0, 100); }); log("你加强边界巡逻，武士们更警觉了。", "剧情"); } },
+          { label: "留下友好标记", kind: "secondary", effect: () => { changeRelation(clan, 5); log("你选择留下友好标记，边界气氛温和了一些。", "剧情"); } }
+        ]
+      };
+    }
+
+    function sickCatStory() {
+      const restingCats = catsInCamp().filter(item => item.health > 15);
+      const cat = pick(restingCats.length ? restingCats : state.cats.filter(item => item.health > 15)) || state.cats[0];
+      return {
+        title: "🌿 一只猫生病了",
+        text: `${cat.name}今天没什么精神，需要照顾。`,
+        choices: [
+          { label: "让巫医照顾", effect: () => {
+            if (state.herbs.catmint > 0) {
+              state.herbs.catmint -= 1;
+              cat.health = clamp(cat.health + 16, 0, 100);
+              log(`巫医用了 1 份猫薄荷照顾${cat.name}，${cat.name}恢复了许多。`, "草药");
+            } else if (state.herbs.marigold > 0) {
+              state.herbs.marigold -= 1;
+              cat.health = clamp(cat.health + 10, 0, 100);
+              log(`猫薄荷不够，巫医用了 1 份金盏花照顾${cat.name}。`, "草药");
+            } else {
+              state.food = Math.max(0, state.food - 1);
+              cat.health = clamp(cat.health + 5, 0, 100);
+              log(`草药不够，巫医只能用温暖苔藓和食物照顾${cat.name}。`, "草药");
+            }
+          } },
+          { label: "让它休息", kind: "secondary", effect: () => { cat.health = clamp(cat.health + 5, 0, 100); log(`${cat.name}在温暖的苔藓窝里休息，精神好了一些。`, "剧情"); } }
+        ]
+      };
+    }
+
+    function newPreyStory() {
+      return {
+        title: "🍖 新的猎物地点",
+        text: "狩猎队发现一条通往浆果灌木的小路，那里有很多小动物脚印。",
+        choices: [
+          { label: "标记地点", effect: () => { state.discoveredPreySites += 1; log("族群标记了新的猎物地点，之后狩猎更容易成功。", "剧情"); } },
+          { label: "今天就带回猎物", kind: "gold", effect: () => { const gain = rand(3, 6); state.food += gain; log(`狩猎队立刻行动，带回 ${gain} 份食物。`, "剧情"); } }
+        ]
+      };
+    }
+
+    function elderLegendStory() {
+      return {
+        title: "📖 长老的传说",
+        text: "长老讲起很久以前星光照亮营地的故事，幼崽和学徒听得眼睛发亮。",
+        choices: [
+          { label: "让大家一起听", effect: () => { state.cats.forEach(cat => { if (cat.stage === "学徒") cat.fighting = clamp(cat.fighting + 2, 0, 100); }); log("学徒们从故事里学会了勇气和耐心。", "剧情"); } },
+          { label: "请长老讲狩猎经验", kind: "secondary", effect: () => { state.cats.forEach(cat => { if (cat.stage === "学徒") cat.hunting = clamp(cat.hunting + 2, 0, 100); }); log("长老分享了辨认风向和脚印的经验，学徒们受益很多。", "剧情"); } }
+        ]
+      };
+    }
+
+    function apprenticeStory() {
+      const apprentices = catsInCamp().filter(cat => cat.stage === "学徒");
+      const cat = apprentices.length ? pick(apprentices) : pick(catsInCamp().length ? catsInCamp() : state.cats);
+      return {
+        title: "⭐ 学徒的请求",
+        text: `${cat.name}希望提前参加武士考验。`,
+        choices: [
+          { label: "给它一次机会", effect: () => {
+            if (cat.stage === "学徒" && cat.hunting + cat.fighting + rand(1, 50) > 120) {
+              const oldName = cat.name;
+              cat.nameRoot = cat.nameRoot || nameRootFrom(cat.name);
+              cat.stage = "武士";
+              cat.role = "武士";
+              cat.name = makeName("武士", cat.nameRoot);
+              log(`${oldName}通过考验，获得武士名${cat.name}，提前成为武士。`, "剧情");
+            } else {
+              cat.health = clamp(cat.health - 3, 0, 100);
+              log(`${cat.name}尝试了考验，但还需要更多训练。`, "剧情");
+            }
+          } },
+          { label: "继续训练", kind: "secondary", effect: () => { cat.hunting = clamp(cat.hunting + 3, 0, 100); cat.fighting = clamp(cat.fighting + 3, 0, 100); log(`你鼓励${cat.name}继续训练。它更加努力了。`, "剧情"); } }
+        ]
+      };
+    }
+
+    function mossNestStory() {
+      return {
+        title: "🌿 苔藓窝变旧了",
+        text: "育婴窝和长老窝里的苔藓有些潮，大家睡得不太舒服。",
+        choices: [
+          { label: "换新苔藓", effect: () => { state.food = Math.max(0, state.food - 2); state.cats.forEach(cat => cat.health = clamp(cat.health + 3, 0, 100)); log("族猫们一起换了新苔藓。营地暖和又干爽，大家健康提升。", "剧情"); } },
+          { label: "先晒一晒", kind: "secondary", effect: () => { const gain = rand(1, 3); state.food += gain; log(`你让学徒把苔藓搬到阳光下晾晒，顺便找到 ${gain} 份旧食物储备。`, "剧情"); } }
+        ]
+      };
+    }
+
+    function herbPatchStory() {
+      const healer = catsInCamp().find(cat => cat.role === "巫医");
+      return {
+        title: "🌱 草药小坡",
+        text: healer ? `${healer.name}在营地后面发现一片适合种草药的小坡。` : "族猫发现一片适合种草药的小坡，但需要细心照看。",
+        choices: [
+          { label: "照看草药", effect: () => { state.cats.forEach(cat => cat.health = clamp(cat.health + 4, 0, 100)); log("族群照看了草药小坡。清香的叶子让大家安心，健康提升。", "剧情"); } },
+          { label: "先标记位置", kind: "secondary", effect: () => { state.discoveredPreySites += 1; log("你让巡逻队记住这片小坡的位置，也发现附近有不少小动物脚印。", "剧情"); } }
+        ]
+      };
+    }
+
+    function moonlitMeetingStory() {
+      const clan = pick(clans);
+      return {
+        title: "🌙 月光下的会面",
+        text: `${clan}邀请你的族群在月光下交换消息。`,
+        choices: [
+          { label: "派使者前往", effect: () => { changeRelation(clan, 8); log(`${state.clanName}派出使者参加会面。双方聊得很平静，${clan}关系提升。`, "剧情"); } },
+          { label: "礼貌婉拒", kind: "secondary", effect: () => { changeRelation(clan, -2); state.food += 1; log("你决定让族猫留在营地休息。关系略有变化，营地多保留了 1 份食物。", "剧情"); } }
+        ]
+      };
+    }
+
+    function friendlyVisitorStory() {
+      const clan = pick(clans);
+      return {
+        title: "🐾 友好的来访者",
+        text: `一只来自${clan}的年轻猫带来问候，还想看看你的营地。`,
+        choices: [
+          { label: "欢迎它", effect: () => { changeRelation(clan, 6); state.food = Math.max(0, state.food - 1); log(`你欢迎了来访者，并分享了一点食物。${clan}对你更友好了。`, "剧情"); } },
+          { label: "在边界交谈", kind: "secondary", effect: () => { changeRelation(clan, 3); log("你让巡逻队在边界礼貌交谈，保持了距离，也留下了好印象。", "剧情"); } }
+        ]
+      };
+    }
+
+    function nurseryGameStory() {
+      const kits = catsInCamp().filter(cat => cat.stage === "幼崽");
+      return {
+        title: "🐱 幼崽的游戏",
+        text: kits.length ? `${kits.map(cat => cat.name).join("、")}在育婴窝旁练习扑叶子。` : "营地里的小猫游戏让学徒想起自己小时候的训练。",
+        choices: [
+          { label: "让学徒陪玩", effect: () => { state.cats.forEach(cat => { if (cat.stage === "学徒") cat.fighting = clamp(cat.fighting + 2, 0, 100); }); log("学徒们陪幼崽玩扑叶子，也练习了灵活闪避。", "剧情"); } },
+          { label: "让它们安静休息", kind: "secondary", effect: () => { state.cats.forEach(cat => { if (cat.stage === "幼崽") cat.health = clamp(cat.health + 5, 0, 100); }); log("幼崽们在暖和的窝里休息，精神更好了。", "剧情"); } }
+        ]
+      };
+    }
+
+    function quietDawnStory() {
+      return {
+        title: "🌤️ 安静的清晨",
+        text: "晨雾很轻，营地外的草叶上有清亮露珠，是适合安排族群的一天。",
+        choices: [
+          { label: "早早巡查营地", effect: () => { state.food += 2; log("你带着族猫早早巡查营地，找到被树叶盖住的 2 份食物。", "剧情"); } },
+          { label: "让大家多睡一会儿", kind: "secondary", effect: () => { state.cats.forEach(cat => cat.health = clamp(cat.health + 2, 0, 100)); log("族猫们多睡了一会儿，醒来后精神饱满。", "剧情"); } }
+        ]
+      };
+    }
+
+    function streamStoneStory() {
+      return {
+        title: "🪨 溪边石头松动",
+        text: "边界小溪旁有几块石头松动，幼崽靠近可能会滑倒。",
+        choices: [
+          { label: "修好通道", effect: () => { state.food = Math.max(0, state.food - 2); state.cats.forEach(cat => { if (cat.stage === "幼崽") cat.health = clamp(cat.health + 3, 0, 100); }); log("族群搬稳了溪边石头。幼崽们以后经过那里更安全了。", "剧情"); } },
+          { label: "设下提醒标记", kind: "secondary", effect: () => { state.cats.forEach(cat => { if (cat.stage === "学徒") cat.fighting = clamp(cat.fighting + 1, 0, 100); }); log("学徒们学会了设置提醒标记，边界经验增加。", "剧情"); } }
+        ]
+      };
+    }
+
+    function thornTunnelStory() {
+      return {
+        title: "🌵 刺藤小路",
+        text: "营地旁的刺藤长得太密，但如果修好，也许能成为很好的防护。",
+        choices: [
+          { label: "修成防护墙", effect: () => { state.cats.forEach(cat => { if (["族长", "副族长", "武士"].includes(cat.role)) cat.fighting = clamp(cat.fighting + 1, 0, 100); }); log("武士们把刺藤修成防护墙，营地更稳固了。", "剧情"); } },
+          { label: "开出狩猎小路", kind: "gold", effect: () => { state.discoveredPreySites += 1; log("族猫从刺藤旁开出一条小路，通向新的猎物地点。", "剧情"); } }
+        ]
+      };
+    }
+
+    function herbStockStory() {
+      const herbKey = pick(["cobweb", "marigold", "catmint"]);
+      const herbName = herbKey === "cobweb" ? "蜘蛛丝" : herbKey === "marigold" ? "金盏花" : "猫薄荷";
+      return {
+        title: "🌿 巫医检查草药",
+        text: `巫医整理草药窝，说${herbName}快不够了。`,
+        choices: [
+          { label: "派猫采集", effect: () => { const amount = herbKey === "catmint" ? 1 : rand(1, 3); state.herbs[herbKey] += amount; log(`族猫找到 ${amount} 份${herbName}，巫医的库存增加了。`, "草药"); } },
+          { label: "先节省使用", kind: "secondary", effect: () => { state.herbs.cobweb += 1; log("巫医重新整理草药窝，省出了 1 份蜘蛛丝。", "草药"); } }
+        ]
+      };
+    }
+
+    function kitQuestionStory() {
+      const kit = pick(catsInCamp().filter(cat => cat.stage === "幼崽")) || pick(state.cats);
+      return {
+        title: "❓ 幼崽的问题",
+        text: `${kit.name}仰头问：“族长，为什么边界不能随便越过去？”`,
+        choices: [
+          { label: "认真解释", effect: () => { changeAffection(kit, 7); state.threat = clamp(state.threat - 2, 0, 100); log(`你认真告诉${kit.name}边界规则。小家伙记住了。`, "剧情"); } },
+          { label: "让长老讲故事", kind: "secondary", effect: () => { state.cats.forEach(cat => { if (cat.stage === "幼崽") changeAffection(cat, 3); }); log("长老用故事解释边界，幼崽们听得很认真。", "剧情"); } }
+        ]
+      };
+    }
+
+    function preyShareArgumentStory() {
+      const a = pick(catsInCamp());
+      const b = pick(catsInCamp().filter(cat => cat.id !== a?.id)) || a;
+      return {
+        title: "🍖 猎物分配的小争执",
+        text: `${a.name}和${b.name}都想把一份好猎物留给自己喜欢的猫。`,
+        choices: [
+          { label: "公平分配", effect: () => { changeAffection(a, 4); changeAffection(b, 4); log("你公平分配猎物，两只猫都觉得族长很公正。", "剧情"); } },
+          { label: "让它们自己商量", kind: "secondary", effect: () => { changeAffection(a, 1); changeAffection(b, 1); state.food += 1; log("它们自己商量后，还整理出 1 份多余食物。", "剧情"); } }
+        ]
+      };
+    }
+
+    function medicineCatRequestStory() {
+      return {
+        title: "🌼 巫医的请求",
+        text: "巫医想把草药分成三小堆：蜘蛛丝处理伤口，金盏花照顾伤猫，猫薄荷照顾生病的猫。",
+        choices: [
+          { label: "帮忙整理", effect: () => { state.herbs.cobweb += 1; state.herbs.marigold += 1; log("你帮巫医整理草药，多找出 1 份蜘蛛丝和 1 份金盏花。", "草药"); } },
+          { label: "记下用法", kind: "secondary", effect: () => { state.cats.forEach(cat => { if (cat.role === "巫医") changeAffection(cat, 5); }); log("你认真记下草药用法，巫医对族长更放心了。", "草药"); } }
+        ]
+      };
+    }
+
+    function borderLessonStory() {
+      const clan = pick(clans);
+      return {
+        title: "🐾 边界教学",
+        text: `学徒在${clan}边界附近闻到新气味，想知道该怎么判断。`,
+        choices: [
+          { label: "亲自教学", effect: () => { state.cats.forEach(cat => { if (cat.stage === "学徒") cat.fighting = clamp(cat.fighting + 2, 0, 100); }); log("你教会学徒分辨边界气味，学徒们更稳重了。", "剧情"); } },
+          { label: "留下标记", kind: "secondary", effect: () => { changeRelation(clan, 2); log(`你留下清楚又礼貌的边界标记，${clan}没有误会。`, "剧情"); } }
+        ]
+      };
+    }
+
+    function hiddenDenStory() {
+      return {
+        title: "🏕️ 隐蔽小窝",
+        text: "巡逻队发现一处被蕨叶挡住的小窝，适合躲雨或存放草药。",
+        choices: [
+          { label: "改成草药窝", effect: () => { state.herbs.cobweb += 2; state.herbs.marigold += 1; log("族群把小窝整理成草药窝，蜘蛛丝和金盏花库存增加。", "草药"); } },
+          { label: "改成避雨处", kind: "secondary", effect: () => { state.cats.forEach(cat => cat.health = clamp(cat.health + 2, 0, 100)); log("小窝成了避雨处，族猫们更不容易着凉。", "剧情"); } }
+        ]
+      };
+    }
+
+    function owlShadowStory() {
+      const cat = pick(catsInCamp().filter(item => item.stage !== "幼崽")) || state.cats[0];
+      return {
+        title: "🪽 树梢上的影子",
+        text: `${cat.name}看见树梢有巨大的鸟影，提醒大家不要在空地久留。`,
+        choices: [
+          { label: "听它提醒", effect: () => { changeAffection(cat, 5); state.threat = clamp(state.threat - 2, 0, 100); log(`${cat.name}的提醒被重视，族群避开了空地。`, "剧情"); } },
+          { label: "检查营地上方", kind: "secondary", effect: () => { state.herbs.cobweb += 1; log("你检查树根和枝丫，顺便收集到 1 份蜘蛛丝。", "草药"); } }
+        ]
+      };
+    }
+
+    function bindEvents() {
+      els.startBtn.addEventListener("click", startGame);
+      els.nextTurnBtn.addEventListener("click", nextTurn);
+      els.huntBtn.addEventListener("click", () => setMode("hunt"));
+      els.patrolBtn.addEventListener("click", () => setMode("patrol"));
+      els.trainBtn.addEventListener("click", () => setMode("train"));
+      els.confirmModeBtn.addEventListener("click", () => state.selectedMode === "hunt" ? doHunt() : state.selectedMode === "patrol" ? doPatrol() : state.selectedMode === "train" ? doTrain() : doTalk());
+      els.cancelModeBtn.addEventListener("click", clearMode);
+      els.showCatsBtn.addEventListener("click", () => els.catsPanel.scrollIntoView({ behavior: "smooth", block: "start" }));
+      els.showLogBtn.addEventListener("click", () => els.logPanel.scrollIntoView({ behavior: "smooth", block: "start" }));
+      document.querySelectorAll(".tab").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".tab").forEach(tab => tab.classList.remove("active"));
+          btn.classList.add("active");
+          state.activeFilter = btn.dataset.filter;
+          renderCats();
+        });
+      });
+    }
+
+    setupCampOptions();
+    bindEvents();
+  </script>
+</body>
+</html>
